@@ -1,0 +1,6 @@
+/* CK42X Hermetic Tarot Trainer - public static shell */
+:root { --bg:#0b0b0c; --bg-card:#141416; --bg-hover:#1a1a1e; --amber:#ffb300; --amber-dim:#b37d00; --amber-glow:rgba(255,179,0,.15); --amber-gradient:linear-gradient(135deg,#ffb300 0%,#ff9500 100%); --green:#10b981; --red:#ef4444; --yellow:#fbbf24; --fg:#e9e9ea; --fg-dim:#8b8b8e; --fg-muted:#5a5a5d; --border:#2a2a2e; --radius:14px; --radius-sm:8px; --ease:cubic-bezier(.2,.8,.2,1); }
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { min-height:100%; background:radial-gradient(circle at 50% -20%, rgba(212,165,65,.08), transparent 36%), var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+button, input, textarea, select { font:inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:2px solid var(--amber); outline-offset:3px; }

@@ -1,0 +1,1939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hermetic Tarot Trainer | CK42X</title>
+<meta name="description" content="A public, static CK42X trainer for learning Hermetic Tarot correspondences: Tree of Life, Hebrew letters, decans, courts, daily draws, and structured recall." />
+<meta property="og:title" content="CK42X Hermetic Tarot Trainer" />
+<meta property="og:description" content="Decode the Hermetic Tarot system before reading the cards." />
+<meta property="og:type" content="website" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+<style>
+:root {
+  --tr-deep: #07070a;
+  --tr-card: #0f0f12;
+  --tr-card-edge: #1c1c22;
+  --tr-aged-gold: #d4a541;
+  --tr-aged-gold-soft: rgba(212, 165, 65, 0.16);
+  --tr-parchment: #e8dfca;
+  --tr-line: #2a2a30;
+  --tr-line-soft: rgba(42, 42, 48, 0.6);
+  --tr-serif: Georgia, 'Times New Roman', serif;
+  --tr-hebrew: 'Times New Roman', serif;
+}
+
+.tr-wrap { max-width: 1240px; margin: 0 auto; padding: 24px 18px 80px; }
+.tr-back { display:inline-block; color: var(--amber); text-decoration:none; font-family:'Geist Mono', monospace; font-size:12px; margin-bottom: 14px; letter-spacing: 0.08em; }
+.tr-back:hover { text-decoration: underline; }
+
+.tr-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: end;
+  padding: 16px 0 22px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 22px;
+}
+.tr-eyebrow { font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--tr-aged-gold); margin-bottom: 8px; }
+.tr-title { font-family: var(--tr-serif); font-size: 44px; font-weight: 500; letter-spacing: -0.01em; line-height: 1; }
+.tr-title em { font-style: italic; color: var(--tr-aged-gold); }
+.tr-tagline { color: var(--fg-dim); margin-top: 8px; font-size: 13px; max-width: 60ch; }
+
+.tr-streak {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 18px;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  min-width: 380px;
+}
+.tr-stat-label { font-family: 'Geist Mono', monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-muted); }
+.tr-stat-val { font-family: var(--tr-serif); font-size: 26px; font-weight: 600; color: var(--tr-aged-gold); line-height: 1; margin-top: 2px; }
+.tr-stat-sub { font-size: 10px; color: var(--fg-muted); font-family: 'Geist Mono', monospace; }
+
+.tr-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; padding: 6px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); position: sticky; top: 0; z-index: 30; backdrop-filter: blur(8px); }
+.tr-tab { flex: 1 1 auto; min-width: 80px; padding: 10px 14px; background: transparent; border: 0; color: var(--fg-dim); cursor: pointer; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; border-radius: 6px; transition: all 0.18s var(--ease); }
+.tr-tab:hover { color: var(--fg); background: var(--bg-hover); }
+.tr-tab.active { color: #0b0b0c; background: var(--tr-aged-gold); font-weight: 600; }
+
+.tr-section { display: none; }
+.tr-section.active { display: block; animation: trFade 0.3s var(--ease); }
+@keyframes trFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ============== DRAW TAB ============== */
+.tr-draw-grid { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 28px; align-items: start; }
+
+.tr-controls {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 12px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+.tr-control-label { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-muted); margin-right: 4px; }
+.tr-chip {
+  padding: 6px 12px; background: transparent; border: 1px solid var(--border); color: var(--fg-dim);
+  border-radius: 6px; cursor: pointer; font-family: 'Geist Mono', monospace; font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase; transition: all 0.15s var(--ease);
+}
+.tr-chip:hover { color: var(--fg); border-color: var(--tr-aged-gold-soft); }
+.tr-chip.active { background: var(--tr-aged-gold-soft); border-color: var(--tr-aged-gold); color: var(--tr-aged-gold); }
+
+/* The card itself */
+.tr-card-stage { perspective: 1400px; min-height: 540px; display: flex; flex-direction: column; align-items: center; }
+.tr-card {
+  width: 320px; height: 480px;
+  position: relative; transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(.25,.8,.3,1.1);
+  margin-bottom: 18px;
+}
+.tr-card.flipped { transform: rotateY(180deg); }
+.tr-card-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--tr-card) 0%, var(--tr-deep) 100%);
+  border: 1px solid var(--tr-card-edge);
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(212, 165, 65, 0.05);
+  display: flex; flex-direction: column;
+}
+.tr-card-face.back {
+  align-items: center; justify-content: center;
+  background:
+    radial-gradient(ellipse at center, rgba(212, 165, 65, 0.07) 0%, transparent 60%),
+    linear-gradient(160deg, var(--tr-card) 0%, var(--tr-deep) 100%);
+}
+.tr-card-face.front { transform: rotateY(180deg); padding: 22px 20px; }
+
+.tr-back-emblem { width: 200px; height: 200px; }
+.tr-back-emblem .ring { fill: none; stroke: var(--tr-aged-gold); stroke-width: 0.6; opacity: 0.55; }
+.tr-back-emblem .seal { fill: none; stroke: var(--tr-aged-gold); stroke-width: 0.5; opacity: 0.85; }
+.tr-back-emblem .glyph { font-family: var(--tr-hebrew); fill: var(--tr-aged-gold); font-size: 28px; opacity: 0.9; }
+.tr-back-label { font-family: 'Geist Mono', monospace; font-size: 9px; letter-spacing: 0.4em; color: var(--tr-aged-gold); margin-top: 16px; text-transform: uppercase; }
+
+.tr-card-frame { position: absolute; inset: 8px; border: 1px solid rgba(212, 165, 65, 0.3); border-radius: 8px; pointer-events: none; }
+.tr-card-frame::before, .tr-card-frame::after {
+  content: ""; position: absolute; width: 18px; height: 18px;
+  border: 1px solid var(--tr-aged-gold);
+}
+.tr-card-frame::before { top: -4px; left: -4px; border-right: 0; border-bottom: 0; }
+.tr-card-frame::after { bottom: -4px; right: -4px; border-left: 0; border-top: 0; }
+
+.tr-card-eyebrow { font-family: 'Geist Mono', monospace; font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--tr-aged-gold); text-align: center; margin-bottom: 8px; }
+.tr-card-title { font-family: var(--tr-serif); font-size: 22px; font-style: italic; text-align: center; color: var(--tr-parchment); line-height: 1.1; min-height: 48px; }
+
+.tr-card-glyph-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.tr-card-hebrew { font-family: var(--tr-hebrew); font-size: 130px; color: var(--tr-aged-gold); line-height: 1; font-weight: 500; text-shadow: 0 0 30px rgba(212, 165, 65, 0.3); }
+.tr-card-hebrew-name { font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.22em; color: var(--fg-dim); text-transform: uppercase; }
+.tr-card-symbols { display: flex; gap: 16px; align-items: center; font-family: var(--tr-hebrew); font-size: 36px; color: var(--tr-aged-gold); line-height: 1; }
+.tr-card-symbol-cluster { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tr-card-rank-numeral { font-family: var(--tr-serif); font-size: 88px; color: var(--tr-aged-gold); line-height: 1; font-weight: 500; }
+
+.tr-card-bottom { text-align: center; margin-top: 12px; }
+.tr-card-name { font-family: var(--tr-serif); font-size: 20px; font-weight: 600; color: var(--tr-parchment); letter-spacing: 0.02em; line-height: 1.1; }
+.tr-card-id { font-family: 'Geist Mono', monospace; font-size: 9px; letter-spacing: 0.2em; color: var(--fg-muted); margin-top: 4px; text-transform: uppercase; }
+
+.tr-card-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.tr-btn {
+  padding: 11px 22px; background: var(--tr-aged-gold); color: #0b0b0c; border: 0; border-radius: 8px;
+  font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  font-weight: 600; cursor: pointer; transition: all 0.15s var(--ease);
+}
+.tr-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px -4px rgba(212, 165, 65, 0.5); }
+.tr-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.tr-btn.ghost { background: transparent; color: var(--tr-aged-gold); border: 1px solid var(--tr-aged-gold); }
+.tr-btn.ghost:hover { background: var(--tr-aged-gold-soft); }
+
+/* Right side: intuition + attributions */
+.tr-side { display: flex; flex-direction: column; gap: 16px; }
+.tr-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+.tr-panel-eyebrow { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--tr-aged-gold); margin-bottom: 10px; }
+.tr-panel-title { font-family: var(--tr-serif); font-size: 22px; font-weight: 600; margin-bottom: 12px; line-height: 1.1; }
+
+.tr-textarea {
+  width: 100%; min-height: 90px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; color: var(--fg); font-family: var(--tr-serif); font-size: 16px; line-height: 1.5;
+  resize: vertical; transition: border-color 0.15s var(--ease);
+}
+.tr-textarea:focus { outline: none; border-color: var(--tr-aged-gold); }
+.tr-textarea::placeholder { color: var(--fg-muted); font-style: italic; }
+
+.tr-attr-table { width: 100%; border-collapse: collapse; }
+.tr-attr-table tr { border-bottom: 1px solid var(--tr-line-soft); }
+.tr-attr-table tr:last-child { border-bottom: 0; }
+.tr-attr-table td { padding: 8px 0; vertical-align: top; }
+.tr-attr-table td:first-child { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-muted); width: 130px; padding-right: 12px; }
+.tr-attr-table td:last-child { font-family: var(--tr-serif); font-size: 16px; color: var(--tr-parchment); }
+.tr-attr-table td .heb { font-family: var(--tr-hebrew); font-size: 22px; color: var(--tr-aged-gold); margin-right: 6px; vertical-align: -2px; }
+.tr-attr-empty { color: var(--fg-muted); font-style: italic; font-family: var(--tr-serif); }
+
+/* ============== TREE OF LIFE ============== */
+.tr-tree-wrap { display: grid; grid-template-columns: minmax(420px, 520px) 1fr; gap: 28px; align-items: start; }
+.tr-tree-svg { width: 100%; max-width: 520px; aspect-ratio: 2 / 3; }
+.tr-tree-svg .seph-circle { fill: var(--tr-card); stroke: var(--tr-aged-gold); stroke-width: 1.4; transition: all 0.2s var(--ease); cursor: pointer; }
+.tr-tree-svg .seph-circle:hover, .tr-tree-svg .seph-circle.active { fill: var(--tr-aged-gold-soft); stroke-width: 2.2; filter: drop-shadow(0 0 10px var(--tr-aged-gold)); }
+.tr-tree-svg .seph-num { font-family: var(--tr-serif); fill: var(--tr-aged-gold); font-size: 18px; text-anchor: middle; font-weight: 600; pointer-events: none; }
+.tr-tree-svg .seph-name { font-family: 'Geist Mono', monospace; fill: var(--fg-dim); font-size: 9px; text-anchor: middle; letter-spacing: 0.14em; text-transform: uppercase; pointer-events: none; }
+.tr-tree-svg .path-line { stroke: var(--tr-line); stroke-width: 1.2; transition: all 0.2s var(--ease); cursor: pointer; }
+.tr-tree-svg .path-line:hover, .tr-tree-svg .path-line.active { stroke: var(--tr-aged-gold); stroke-width: 2.4; filter: drop-shadow(0 0 6px var(--tr-aged-gold)); }
+.tr-tree-svg .path-letter { font-family: var(--tr-hebrew); fill: var(--tr-aged-gold); font-size: 14px; text-anchor: middle; font-weight: 500; pointer-events: none; opacity: 0.7; }
+
+.tr-tree-info { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; min-height: 320px; }
+
+/* ============== DECAN WHEEL ============== */
+.tr-wheel-wrap { display: grid; grid-template-columns: minmax(420px, 540px) 1fr; gap: 28px; align-items: start; }
+.tr-wheel-svg { width: 100%; max-width: 540px; aspect-ratio: 1 / 1; }
+.tr-wheel-svg .decan-wedge { stroke: var(--tr-line); stroke-width: 0.8; cursor: pointer; transition: all 0.2s var(--ease); }
+.tr-wheel-svg .decan-wedge:hover, .tr-wheel-svg .decan-wedge.active { fill: var(--tr-aged-gold-soft); stroke: var(--tr-aged-gold); stroke-width: 1.5; }
+.tr-wheel-svg .sign-glyph { font-family: var(--tr-hebrew); fill: var(--tr-aged-gold); font-size: 18px; text-anchor: middle; pointer-events: none; }
+.tr-wheel-svg .decan-num { font-family: 'Geist Mono', monospace; fill: var(--fg-dim); font-size: 8px; text-anchor: middle; pointer-events: none; }
+
+/* ============== CHEAT TAB ============== */
+.tr-cheat-subtabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.tr-subtab { padding: 7px 14px; background: var(--bg-card); border: 1px solid var(--border); color: var(--fg-dim); font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; border-radius: 6px; transition: all 0.15s var(--ease); }
+.tr-subtab:hover { color: var(--fg); }
+.tr-subtab.active { background: var(--tr-aged-gold); color: #0b0b0c; border-color: var(--tr-aged-gold); }
+
+.tr-table { width: 100%; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.tr-table th { padding: 12px 14px; background: var(--bg); text-align: left; font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--tr-aged-gold); border-bottom: 1px solid var(--border); }
+.tr-table td { padding: 11px 14px; font-family: var(--tr-serif); font-size: 16px; color: var(--tr-parchment); border-bottom: 1px solid var(--tr-line-soft); }
+.tr-table tr:last-child td { border-bottom: 0; }
+.tr-table tr:hover td { background: var(--bg-hover); }
+.tr-table .heb { font-family: var(--tr-hebrew); font-size: 22px; color: var(--tr-aged-gold); }
+.tr-table .mono { font-family: 'Geist Mono', monospace; font-size: 12px; color: var(--fg-dim); }
+
+/* 78-card grid */
+.tr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 18px;
+}
+.tr-cell {
+  aspect-ratio: 2 / 3;
+  background: var(--tr-deep);
+  border: 1px solid var(--tr-card-edge);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Geist Mono', monospace; font-size: 9px; color: var(--fg-muted);
+  cursor: pointer; transition: all 0.15s var(--ease); position: relative;
+}
+.tr-cell:hover { border-color: var(--tr-aged-gold); color: var(--tr-aged-gold); transform: scale(1.05); z-index: 2; }
+.tr-cell.seen { background: rgba(212, 165, 65, 0.08); border-color: rgba(212, 165, 65, 0.4); color: var(--tr-aged-gold); }
+.tr-cell.seen-3 { background: rgba(212, 165, 65, 0.18); border-color: var(--tr-aged-gold); }
+.tr-cell .cnt { position: absolute; top: 2px; right: 3px; font-size: 7px; opacity: 0.7; }
+
+/* ============== DIARY TAB ============== */
+.tr-diary-day { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; margin-bottom: 14px; border-left: 3px solid var(--tr-aged-gold); }
+.tr-diary-date { font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tr-aged-gold); margin-bottom: 10px; }
+.tr-diary-draw { padding: 12px 0; border-top: 1px solid var(--tr-line-soft); }
+.tr-diary-draw:first-of-type { border-top: 0; padding-top: 0; }
+.tr-diary-card-name { font-family: var(--tr-serif); font-size: 20px; font-weight: 600; color: var(--tr-parchment); margin-bottom: 4px; }
+.tr-diary-card-meta { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--fg-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.tr-diary-prose { font-family: var(--tr-serif); font-size: 15px; color: var(--tr-parchment); line-height: 1.55; margin-top: 6px; }
+.tr-diary-prose.empty { color: var(--fg-muted); font-style: italic; }
+.tr-diary-block-label { font-family: 'Geist Mono', monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--fg-muted); margin-top: 10px; }
+
+/* ============== QUIZ TAB ============== */
+.tr-quiz-pick { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+.tr-quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 28px; max-width: 720px; }
+.tr-quiz-q { font-family: var(--tr-serif); font-size: 26px; line-height: 1.3; color: var(--tr-parchment); margin-bottom: 22px; }
+.tr-quiz-choices { display: grid; gap: 10px; }
+.tr-choice { padding: 14px 18px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--tr-parchment); font-family: var(--tr-serif); font-size: 16px; text-align: left; cursor: pointer; transition: all 0.15s var(--ease); }
+.tr-choice:hover { border-color: var(--tr-aged-gold); background: var(--tr-aged-gold-soft); }
+.tr-choice.correct { background: rgba(16, 185, 129, 0.14); border-color: var(--green); color: var(--green); }
+.tr-choice.wrong { background: rgba(239, 68, 68, 0.14); border-color: var(--red); color: var(--red); }
+.tr-quiz-explain { margin-top: 18px; padding: 14px 16px; background: var(--bg); border-left: 3px solid var(--tr-aged-gold); border-radius: 6px; font-family: var(--tr-serif); font-size: 15px; color: var(--tr-parchment); line-height: 1.55; }
+
+/* ============== JOURNEY / TODAY ============== */
+.tr-journey-hero {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(212, 165, 65, 0.05) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 26px;
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+.tr-journey-day-num { font-family: var(--tr-serif); font-size: 64px; line-height: 1; font-weight: 600; color: var(--tr-aged-gold); letter-spacing: -0.02em; }
+.tr-journey-day-label { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--fg-muted); margin-bottom: 4px; }
+.tr-journey-stage-badge { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tr-aged-gold); padding: 4px 10px; background: var(--tr-aged-gold-soft); border-radius: 4px; display: inline-block; margin-bottom: 8px; }
+.tr-journey-lesson-title { font-family: var(--tr-serif); font-size: 26px; font-weight: 600; color: var(--tr-parchment); line-height: 1.2; margin-bottom: 6px; }
+.tr-journey-lesson-sub { font-family: var(--tr-serif); font-style: italic; color: var(--fg-dim); font-size: 14px; }
+.tr-journey-overall { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+.tr-journey-overall-label { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-muted); }
+.tr-journey-overall-bar { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; border: 1px solid var(--border); position: relative; }
+.tr-journey-overall-fill { height: 100%; background: linear-gradient(90deg, var(--tr-aged-gold) 0%, #ffb84d 100%); transition: width 0.4s var(--ease); }
+.tr-journey-overall-pct { font-family: var(--tr-serif); font-size: 22px; font-weight: 600; color: var(--tr-aged-gold); }
+
+.tr-journey-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.tr-journey-action-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px; cursor: pointer; transition: all 0.2s var(--ease);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.tr-journey-action-card:hover { border-color: var(--tr-aged-gold); transform: translateY(-2px); }
+.tr-journey-action-card.primary { background: linear-gradient(135deg, rgba(212,165,65,0.18) 0%, rgba(212,165,65,0.05) 100%); border-color: var(--tr-aged-gold); }
+.tr-journey-action-eyebrow { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--tr-aged-gold); }
+.tr-journey-action-title { font-family: var(--tr-serif); font-size: 20px; font-weight: 600; color: var(--tr-parchment); }
+.tr-journey-action-desc { font-family: var(--tr-serif); font-size: 14px; color: var(--fg-dim); font-style: italic; line-height: 1.5; }
+
+.tr-stages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.tr-stage-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+.tr-stage-num { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--fg-muted); }
+.tr-stage-title { font-family: var(--tr-serif); font-size: 16px; font-weight: 600; color: var(--tr-parchment); margin: 4px 0 8px; }
+.tr-stage-bar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+.tr-stage-fill { height: 100%; background: var(--tr-aged-gold); transition: width 0.4s var(--ease); }
+.tr-stage-meta { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--fg-muted); letter-spacing: 0.08em; }
+
+/* Lesson player modal */
+.tr-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(7, 7, 10, 0.85); backdrop-filter: blur(8px);
+  z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto;
+}
+.tr-modal-backdrop.open { display: flex; animation: trFade 0.25s var(--ease); }
+.tr-modal {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  max-width: 760px; width: 100%; padding: 32px 36px; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8);
+  margin: 40px 0;
+}
+.tr-modal-eyebrow { font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--tr-aged-gold); margin-bottom: 8px; }
+.tr-modal-title { font-family: var(--tr-serif); font-size: 32px; font-weight: 600; color: var(--tr-parchment); line-height: 1.15; margin-bottom: 6px; }
+.tr-modal-sub { font-family: var(--tr-serif); font-style: italic; color: var(--fg-dim); font-size: 15px; margin-bottom: 22px; }
+.tr-lesson-step { padding: 14px 0; border-top: 1px solid var(--tr-line-soft); }
+.tr-lesson-step:first-child { border-top: 0; }
+.tr-step-label { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--tr-aged-gold); text-transform: uppercase; margin-bottom: 10px; }
+.tr-step-prose { font-family: var(--tr-serif); font-size: 17px; line-height: 1.65; color: var(--tr-parchment); }
+.tr-step-prose p + p { margin-top: 12px; }
+.tr-data-block { background: var(--bg); border-left: 3px solid var(--tr-aged-gold); border-radius: 4px; padding: 14px 18px; margin: 10px 0; font-family: var(--tr-serif); font-size: 16px; color: var(--tr-parchment); }
+.tr-data-block .heb { font-family: var(--tr-hebrew); font-size: 32px; color: var(--tr-aged-gold); margin-right: 8px; vertical-align: -4px; }
+.tr-quiz-q-inline { font-family: var(--tr-serif); font-size: 18px; color: var(--tr-parchment); margin-bottom: 12px; }
+.tr-quiz-input { width: 100%; padding: 11px 14px; background: var(--bg); border: 1px solid var(--border); color: var(--fg); border-radius: 8px; font-family: var(--tr-serif); font-size: 16px; }
+.tr-quiz-input:focus { outline: none; border-color: var(--tr-aged-gold); }
+.tr-modal-actions { display: flex; gap: 12px; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--tr-line-soft); flex-wrap: wrap; }
+.tr-modal-close { background: transparent; border: 0; color: var(--fg-muted); cursor: pointer; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; padding: 10px 16px; }
+.tr-modal-close:hover { color: var(--fg); }
+.tr-quiz-result-correct { color: var(--green); font-family: var(--tr-serif); font-style: italic; }
+.tr-quiz-result-wrong { color: var(--red); font-family: var(--tr-serif); font-style: italic; }
+.tr-quiz-explain-inline { font-family: var(--tr-serif); font-size: 14px; color: var(--fg-dim); font-style: italic; padding: 8px 12px; background: var(--bg); border-radius: 6px; margin-top: 8px; line-height: 1.55; }
+
+/* Curriculum browser */
+.tr-curriculum-stage { margin-bottom: 18px; }
+.tr-curriculum-stage-h { font-family: var(--tr-serif); font-size: 22px; font-weight: 600; color: var(--tr-parchment); margin-bottom: 6px; }
+.tr-curriculum-stage-desc { font-family: var(--tr-serif); font-style: italic; color: var(--fg-dim); font-size: 14px; margin-bottom: 12px; }
+.tr-curriculum-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+.tr-curr-item {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; cursor: pointer; transition: all 0.15s var(--ease);
+  display: flex; align-items: center; gap: 10px;
+}
+.tr-curr-item:hover { border-color: var(--tr-aged-gold); }
+.tr-curr-item.done { opacity: 0.7; }
+.tr-curr-item.done .tr-curr-title { text-decoration: line-through; }
+.tr-curr-item.current { border-color: var(--tr-aged-gold); background: var(--tr-aged-gold-soft); }
+.tr-curr-mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--tr-line); flex-shrink: 0; position: relative; }
+.tr-curr-item.done .tr-curr-mark { background: var(--tr-aged-gold); border-color: var(--tr-aged-gold); }
+.tr-curr-item.done .tr-curr-mark::after { content: "✓"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 9px; color: #0b0b0c; font-weight: 700; }
+.tr-curr-item.current .tr-curr-mark { background: var(--tr-aged-gold); border-color: var(--tr-aged-gold); animation: pulseGold 1.5s ease-in-out infinite; }
+@keyframes pulseGold { 0%, 100% { box-shadow: 0 0 0 0 rgba(212,165,65,0.6); } 50% { box-shadow: 0 0 0 6px rgba(212,165,65,0); } }
+.tr-curr-num { font-family: 'Geist Mono', monospace; font-size: 10px; color: var(--fg-muted); flex-shrink: 0; min-width: 22px; }
+.tr-curr-title { font-family: var(--tr-serif); font-size: 14px; color: var(--tr-parchment); flex: 1; line-height: 1.35; }
+
+/* Progress dashboard */
+.tr-prog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.tr-prog-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; }
+.tr-prog-big-num { font-family: var(--tr-serif); font-size: 56px; font-weight: 600; color: var(--tr-aged-gold); line-height: 1; }
+.tr-prog-mini-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 14px; }
+.tr-prog-mini { padding: 10px 12px; background: var(--bg); border-radius: 6px; }
+.tr-prog-mini-label { font-family: 'Geist Mono', monospace; font-size: 9px; color: var(--fg-muted); letter-spacing: 0.16em; text-transform: uppercase; }
+.tr-prog-mini-val { font-family: var(--tr-serif); font-size: 22px; color: var(--tr-aged-gold); margin-top: 2px; }
+
+
+
+
+/* ============== BEGINNER TEACHING LAYER ============== */
+.tr-beginner-box { background: rgba(212,165,65,0.075); border: 1px solid rgba(212,165,65,0.22); border-left: 3px solid var(--tr-aged-gold); border-radius: 8px; padding: 14px 16px; margin: 12px 0; }
+.tr-beginner-title { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--tr-aged-gold); margin-bottom: 8px; }
+.tr-beginner-prose { font-family: var(--tr-serif); color: var(--tr-parchment); font-size: 16px; line-height: 1.6; }
+.tr-beginner-prose p + p { margin-top: 8px; }
+.tr-glossary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-top: 10px; }
+.tr-glossary-term { background: rgba(7,7,10,.45); border: 1px solid var(--tr-line-soft); border-radius: 8px; padding: 10px 12px; }
+.tr-glossary-term b { display:block; font-family: var(--tr-serif); color: var(--tr-aged-gold); font-size: 17px; margin-bottom: 3px; }
+.tr-glossary-term span { display:block; font-family: var(--tr-serif); color: var(--fg-dim); font-size: 14px; line-height: 1.4; }
+.tr-example-strip { display: grid; gap: 8px; margin-top: 10px; }
+.tr-example-row { background: var(--bg); border: 1px solid var(--tr-line-soft); border-radius: 8px; padding: 10px 12px; font-family: var(--tr-serif); color: var(--tr-parchment); line-height: 1.45; }
+.tr-example-row strong { color: var(--tr-aged-gold); }
+.tr-plain-steps { margin: 8px 0 0; padding-left: 19px; font-family: var(--tr-serif); color: var(--tr-parchment); line-height: 1.55; }
+.tr-plain-steps li { margin: 4px 0; }
+
+/* ============== RESEARCH / STUDY LAB ============== */
+.tr-source-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tr-source-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 15px 17px; }
+.tr-source-card strong { display:block; font-family: var(--tr-serif); color: var(--tr-parchment); font-size: 17px; margin-bottom: 6px; }
+.tr-source-card p { font-family: var(--tr-serif); color: var(--fg-dim); font-size: 14px; line-height: 1.5; }
+.tr-lab-grid { display: grid; grid-template-columns: minmax(290px, 380px) 1fr; gap: 16px; align-items: start; }
+.tr-lab-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+.tr-select { width: 100%; padding: 10px 12px; background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; font-family: var(--tr-serif); font-size: 16px; }
+.tr-select:focus { outline: none; border-color: var(--tr-aged-gold); }
+.tr-data-score { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.tr-data-score div { background: var(--bg); border: 1px solid var(--tr-line-soft); border-radius: 8px; padding: 10px; }
+.tr-data-score b { display: block; font-family: var(--tr-serif); color: var(--tr-aged-gold); font-size: 24px; line-height: 1; }
+.tr-data-score span { font-family: 'Geist Mono', monospace; color: var(--fg-muted); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+.tr-lab-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.tr-lab-fields .full { grid-column: 1 / -1; }
+.tr-field-label { font-family: 'Geist Mono', monospace; font-size: 9px; letter-spacing: .16em; color: var(--tr-aged-gold); text-transform: uppercase; margin: 0 0 5px; }
+.tr-mini-textarea { width: 100%; min-height: 84px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--fg); padding: 9px 10px; font-family: var(--tr-serif); font-size: 15px; line-height: 1.45; resize: vertical; }
+.tr-mini-textarea:focus { outline: none; border-color: var(--tr-aged-gold); }
+.tr-layer-list { display: grid; gap: 8px; margin-top: 10px; }
+.tr-layer { background: rgba(7,7,10,.42); border: 1px solid var(--tr-line-soft); border-radius: 8px; padding: 10px 12px; }
+.tr-layer b { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--tr-aged-gold); }
+.tr-layer div { font-family: var(--tr-serif); color: var(--tr-parchment); font-size: 15px; line-height: 1.45; margin-top: 4px; }
+.tr-warning-soft { color: var(--fg-dim); background: rgba(212,165,65,.07); border: 1px solid rgba(212,165,65,.18); border-left: 3px solid var(--tr-aged-gold); border-radius: 8px; padding: 10px 12px; font-family: var(--tr-serif); font-style: italic; line-height: 1.45; }
+@media (max-width: 880px) { .tr-lab-grid { grid-template-columns: 1fr; } .tr-lab-fields { grid-template-columns: 1fr; } }
+
+/* ============== TRAINING ENHANCEMENTS ============== */
+.tr-training-rail { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 14px; margin: 0 0 18px; }
+.tr-training-card { background: linear-gradient(135deg, var(--bg-card) 0%, rgba(212,165,65,0.035) 100%); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+.tr-training-card.accent { border-color: rgba(212,165,65,0.45); box-shadow: inset 0 0 0 1px rgba(212,165,65,0.05); }
+.tr-training-title { font-family: var(--tr-serif); font-size: 21px; font-weight: 600; color: var(--tr-parchment); margin-bottom: 8px; }
+.tr-training-prose { font-family: var(--tr-serif); color: var(--fg-dim); font-size: 15px; line-height: 1.55; }
+.tr-training-list { margin: 10px 0 0; padding-left: 18px; color: var(--tr-parchment); font-family: var(--tr-serif); line-height: 1.55; }
+.tr-training-list li { margin: 5px 0; }
+.tr-memory-stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+.tr-memory-chip { border: 1px solid var(--tr-line-soft); background: rgba(7,7,10,0.45); border-radius: 8px; padding: 10px 12px; }
+.tr-memory-label { font-family: 'Geist Mono', monospace; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-muted); margin-bottom: 4px; }
+.tr-memory-value { font-family: var(--tr-serif); font-size: 17px; line-height: 1.2; color: var(--tr-parchment); }
+.tr-method-steps { counter-reset: method; display: grid; gap: 8px; margin-top: 10px; }
+.tr-method-step { position: relative; padding: 10px 12px 10px 44px; background: rgba(7,7,10,0.38); border: 1px solid var(--tr-line-soft); border-radius: 8px; font-family: var(--tr-serif); color: var(--tr-parchment); line-height: 1.45; }
+.tr-method-step::before { counter-increment: method; content: counter(method); position: absolute; left: 12px; top: 10px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: var(--tr-aged-gold); color: #0b0b0c; font-family: 'Geist Mono', monospace; font-size: 10px; font-weight: 700; }
+.tr-lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tr-lesson-card { background: var(--bg); border: 1px solid var(--tr-line-soft); border-radius: 8px; padding: 13px 15px; }
+.tr-lesson-card.full { grid-column: 1 / -1; }
+.tr-lesson-card h3 { margin: 0 0 7px; font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tr-aged-gold); }
+.tr-lesson-card p, .tr-lesson-card li { font-family: var(--tr-serif); color: var(--tr-parchment); line-height: 1.55; font-size: 15px; }
+.tr-lesson-card ul { margin: 0; padding-left: 18px; }
+.tr-lesson-card li + li { margin-top: 4px; }
+.tr-formula { font-family: 'Geist Mono', monospace; color: var(--tr-aged-gold); font-size: 12px; letter-spacing: 0.03em; background: rgba(212,165,65,0.08); border: 1px solid rgba(212,165,65,0.18); border-radius: 6px; padding: 9px 10px; line-height: 1.5; }
+.tr-practice-prompt { border-left: 3px solid var(--tr-aged-gold); padding-left: 12px; font-style: italic; color: var(--fg-dim); }
+@media (max-width: 880px) {
+  .tr-training-rail { grid-template-columns: 1fr; }
+  .tr-lesson-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 880px) {
+  .tr-journey-hero { grid-template-columns: 1fr; }
+  .tr-journey-actions { grid-template-columns: 1fr; }
+  .tr-prog-grid { grid-template-columns: 1fr; }
+  .tr-modal { padding: 22px 18px; }
+  .tr-modal-title { font-size: 24px; }
+}
+
+/* Mobile */
+@media (max-width: 880px) {
+  .tr-header { grid-template-columns: 1fr; }
+  .tr-streak { min-width: 0; grid-template-columns: repeat(2, 1fr); }
+  .tr-title { font-size: 32px; }
+  .tr-draw-grid, .tr-tree-wrap, .tr-wheel-wrap { grid-template-columns: 1fr; }
+  .tr-card { width: 280px; height: 420px; }
+  .tr-card-hebrew { font-size: 110px; }
+}
+@media (max-width: 480px) {
+  .tr-card { width: 240px; height: 360px; }
+  .tr-card-hebrew { font-size: 90px; }
+}
+</style>
+</head>
+<body>
+
+<div class="tr-wrap">
+  <a href="https://ck42x.com" class="tr-back">← BACK TO CK42X</a>
+
+  <header class="tr-header">
+    <div>
+      <div class="tr-eyebrow">CK42X · ESOTERIC PRACTICE</div>
+      <h1 class="tr-title">Hermetic <em>Tarot</em></h1>
+      <p class="tr-tagline">A structured Hermetic Tarot study trainer: decode the Tree, letters, decans, courts, then read the cards.</p>
+    </div>
+    <div class="tr-streak" id="streak">
+      <div><div class="tr-stat-label">Streak</div><div class="tr-stat-val" id="s-streak">0</div><div class="tr-stat-sub">days</div></div>
+      <div><div class="tr-stat-label">Draws</div><div class="tr-stat-val" id="s-total">0</div><div class="tr-stat-sub">lifetime</div></div>
+      <div><div class="tr-stat-label">Cards Seen</div><div class="tr-stat-val" id="s-unique">0</div><div class="tr-stat-sub">of 78</div></div>
+      <div><div class="tr-stat-label">Decode</div><div class="tr-stat-val" id="s-pass">0</div><div class="tr-stat-sub">systematic</div></div>
+    </div>
+  </header>
+
+  <nav class="tr-tabs" role="tablist">
+    <button class="tr-tab active" data-tab="today">Today</button>
+    <button class="tr-tab" data-tab="curriculum">Journey</button>
+    <button class="tr-tab" data-tab="progress">Progress</button>
+    <button class="tr-tab" data-tab="draw">Free Draw</button>
+    <button class="tr-tab" data-tab="tree">Tree of Life</button>
+    <button class="tr-tab" data-tab="wheel">Decan Wheel</button>
+    <button class="tr-tab" data-tab="cheat">Cheat Sheet</button>
+    <button class="tr-tab" data-tab="datalab">Study Lab</button>
+    <button class="tr-tab" data-tab="diary">Diary</button>
+    <button class="tr-tab" data-tab="quiz">Quiz</button>
+  </nav>
+
+  <!-- TODAY -->
+  <section class="tr-section active" data-tab="today">
+    <div class="tr-journey-hero" id="journeyHero">
+      <div>
+        <div class="tr-journey-day-label">Today's Lesson</div>
+        <div id="todayBody">Loading…</div>
+      </div>
+      <div class="tr-journey-overall">
+        <div class="tr-journey-overall-label">Overall Progress</div>
+        <div class="tr-journey-overall-bar"><div class="tr-journey-overall-fill" id="overallFill" style="width: 0%;"></div></div>
+        <div><span class="tr-journey-overall-pct" id="overallPct">0%</span> <span style="font-family:'Geist Mono', monospace; font-size:10px; color:var(--fg-muted); margin-left:4px;" id="overallCounts">0 / 0 lessons</span></div>
+      </div>
+    </div>
+    <div class="tr-training-rail" id="todayCoach"></div>
+    <div class="tr-journey-actions">
+      <div class="tr-journey-action-card primary" id="actBeginLesson">
+        <div class="tr-journey-action-eyebrow">▸ Today's Lesson</div>
+        <div class="tr-journey-action-title" id="actBeginTitle">Begin Today's Lesson</div>
+        <div class="tr-journey-action-desc" id="actBeginDesc">Sit down. Read. Quiz. Internalize.</div>
+      </div>
+      <div class="tr-journey-action-card" id="actDailyDraw">
+        <div class="tr-journey-action-eyebrow">▸ Daily Draw</div>
+        <div class="tr-journey-action-title">Pull Today's Card</div>
+        <div class="tr-journey-action-desc">Sit with what comes. Test your intuition before reveal. Save to diary.</div>
+      </div>
+    </div>
+    <div class="tr-stages-grid" id="stagesGrid"></div>
+  </section>
+
+  <!-- CURRICULUM (full journey browser) -->
+  <section class="tr-section" data-tab="curriculum">
+    <div id="curriculumBody">
+      <div class="tr-panel"><div class="tr-attr-empty">Loading curriculum…</div></div>
+    </div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section class="tr-section" data-tab="progress">
+    <div id="progressBody">
+      <div class="tr-panel"><div class="tr-attr-empty">Loading progress…</div></div>
+    </div>
+  </section>
+
+  <!-- LESSON MODAL -->
+  <div class="tr-modal-backdrop" id="lessonModal">
+    <div class="tr-modal" id="lessonModalInner"></div>
+  </div>
+
+  <!-- DRAW -->
+  <section class="tr-section" data-tab="draw">
+    <div class="tr-controls">
+      <span class="tr-control-label">Mode</span>
+      <button class="tr-chip active" data-mode="random">Random</button>
+      <button class="tr-chip" data-mode="systematic">Systematic</button>
+      <span class="tr-control-label" style="margin-left: 12px;">Type</span>
+      <button class="tr-chip active" data-type="all">All</button>
+      <button class="tr-chip" data-type="major">Major</button>
+      <button class="tr-chip" data-type="minor">Minor</button>
+      <button class="tr-chip" data-type="court">Court</button>
+    </div>
+
+    <div class="tr-draw-grid">
+      <div class="tr-card-stage">
+        <div class="tr-card" id="card">
+          <div class="tr-card-face back">
+            <svg class="tr-back-emblem" viewBox="-100 -100 200 200">
+              <circle class="ring" r="92"/>
+              <circle class="ring" r="78"/>
+              <circle class="ring" r="64"/>
+              <circle class="seal" r="50"/>
+              <polygon class="seal" points="0,-50 47,15 29,42 -29,42 -47,15"/>
+              <polygon class="seal" points="0,-44 38,-13 24,33 -24,33 -38,-13"/>
+              <polygon class="seal" points="0,-40 35,30 -35,30" transform="rotate(0)"/>
+              <polygon class="seal" points="0,-40 35,30 -35,30" transform="rotate(180)"/>
+              <text class="glyph" x="0" y="9" text-anchor="middle">תפארת</text>
+            </svg>
+            <div class="tr-back-label">CK42X · Hermetica</div>
+          </div>
+          <div class="tr-card-face front" id="cardFront">
+            <div class="tr-card-frame"></div>
+            <div class="tr-card-eyebrow" id="cardEyebrow">—</div>
+            <div class="tr-card-title" id="cardTitle">—</div>
+            <div class="tr-card-glyph-area" id="cardGlyph"></div>
+            <div class="tr-card-bottom">
+              <div class="tr-card-name" id="cardName">—</div>
+              <div class="tr-card-id" id="cardId">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="tr-card-actions">
+          <button class="tr-btn" id="btnDraw">Draw a Card</button>
+          <button class="tr-btn ghost" id="btnReveal" disabled>Reveal</button>
+        </div>
+      </div>
+
+      <div class="tr-side">
+        <div class="tr-panel">
+          <div class="tr-panel-eyebrow">Pre-lookup intuition</div>
+          <p style="color: var(--fg-dim); font-size: 12px; margin-bottom: 10px; font-family: var(--tr-serif); font-style: italic;">Sit with the card. Write what it tells you before the attributions reveal.</p>
+          <textarea class="tr-textarea" id="intuition" placeholder="The card whispers..."></textarea>
+        </div>
+
+        <div class="tr-panel">
+          <div class="tr-panel-eyebrow">Attributions</div>
+          <table class="tr-attr-table" id="attrTable">
+            <tbody>
+              <tr><td colspan="2" class="tr-attr-empty">Draw a card and reveal to see Golden Dawn attributions.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="tr-panel">
+          <div class="tr-panel-eyebrow">End-of-day reflection</div>
+          <p style="color: var(--fg-dim); font-size: 12px; margin-bottom: 10px; font-family: var(--tr-serif); font-style: italic;">Tonight, what showed up that this card touched?</p>
+          <textarea class="tr-textarea" id="reflection" placeholder="The day brought..."></textarea>
+          <div style="margin-top: 12px; display: flex; gap: 10px;">
+            <button class="tr-btn" id="btnSave" disabled>Save to Diary</button>
+            <span id="saveStatus" style="font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--fg-muted); align-self: center;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TREE -->
+  <section class="tr-section" data-tab="tree">
+    <div class="tr-tree-wrap">
+      <svg class="tr-tree-svg" id="treeSvg" viewBox="0 0 400 600"></svg>
+      <div class="tr-tree-info" id="treeInfo">
+        <div class="tr-panel-eyebrow">Tree of Life</div>
+        <p style="color: var(--fg-dim); font-family: var(--tr-serif); font-style: italic; margin-top: 8px;">Hover or tap a sephirah or path. The 10 nodes are the sephiroth (one per minor card by suit). The 22 paths between them are the major arcana, each carrying a Hebrew letter.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHEEL -->
+  <section class="tr-section" data-tab="wheel">
+    <div class="tr-wheel-wrap">
+      <svg class="tr-wheel-svg" id="wheelSvg" viewBox="-260 -260 520 520"></svg>
+      <div class="tr-tree-info" id="wheelInfo">
+        <div class="tr-panel-eyebrow">36 Decans</div>
+        <p style="color: var(--fg-dim); font-family: var(--tr-serif); font-style: italic; margin-top: 8px;">Each 10° wedge of the zodiac corresponds to one minor pip card (2 through 10). Hover or tap a wedge to see the planetary ruler and the GD title.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHEAT -->
+  <section class="tr-section" data-tab="cheat">
+    <div class="tr-cheat-subtabs">
+      <button class="tr-subtab active" data-cheat="letters">Hebrew Letters</button>
+      <button class="tr-subtab" data-cheat="sephiroth">Sephiroth</button>
+      <button class="tr-subtab" data-cheat="decans">Decans</button>
+      <button class="tr-subtab" data-cheat="cards">All 78 Cards</button>
+      <button class="tr-subtab" data-cheat="status">Mastery Grid</button>
+    </div>
+    <div id="cheatBody"></div>
+  </section>
+
+
+  <!-- STUDY LAB -->
+  <section class="tr-section" data-tab="datalab">
+    <div class="tr-source-grid" id="sourceGrid"></div>
+    <div class="tr-lab-grid">
+      <div class="tr-lab-card">
+        <div class="tr-panel-eyebrow">Structured study model</div>
+        <div class="tr-training-title">Build meanings from structure, not vibes.</div>
+        <p class="tr-training-prose">The trainer treats every card as a small data object you can develop: objective correspondences first, then your observed meanings.</p>
+        <div class="tr-data-score" id="dataCompleteness"></div>
+        <div style="margin-top:14px;">
+          <div class="tr-field-label">Choose card to develop</div>
+          <select class="tr-select" id="labCardSelect"></select>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="tr-btn ghost" id="btnSaveLabNotes">Save Card Notes</button>
+          <button class="tr-btn ghost" id="btnExportLabNotes">Export Notes JSON</button>
+        </div>
+        <div id="labSaveStatus" style="font-family:'Geist Mono', monospace; color:var(--fg-muted); font-size:10px; margin-top:8px;"></div>
+      </div>
+      <div class="tr-lab-card" id="labCardBody">
+        <div class="tr-attr-empty">Loading study lab…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIARY -->
+  <section class="tr-section" data-tab="diary">
+    <div id="diaryBody">
+      <div class="tr-panel"><div class="tr-attr-empty">Loading diary…</div></div>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section class="tr-section" data-tab="quiz">
+    <div class="tr-quiz-pick">
+      <button class="tr-subtab active" data-quiz="letters">Hebrew Letters</button>
+      <button class="tr-subtab" data-quiz="sephiroth">Sephiroth</button>
+      <button class="tr-subtab" data-quiz="decans">Decans</button>
+      <button class="tr-subtab" data-quiz="courts">Courts</button>
+    </div>
+    <div id="quizBody">
+      <div class="tr-quiz-card">
+        <div class="tr-quiz-q">Pick a topic above to begin drilling.</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const SEPH_COORDS = {
+  1: { x: 200, y: 60,  name: "Kether" },
+  2: { x: 320, y: 140, name: "Chokmah" },
+  3: { x: 80,  y: 140, name: "Binah" },
+  4: { x: 320, y: 240, name: "Chesed" },
+  5: { x: 80,  y: 240, name: "Geburah" },
+  6: { x: 200, y: 320, name: "Tiphareth" },
+  7: { x: 320, y: 420, name: "Netzach" },
+  8: { x: 80,  y: 420, name: "Hod" },
+  9: { x: 200, y: 490, name: "Yesod" },
+  10:{ x: 200, y: 560, name: "Malkuth" },
+};
+
+const PATHS_DATA = [
+  { n: 11, from: 1, to: 2, letter: "א", letterName: "Aleph", card: "The Fool", attr: "Air" },
+  { n: 12, from: 1, to: 3, letter: "ב", letterName: "Beth", card: "The Magus", attr: "Mercury" },
+  { n: 13, from: 1, to: 6, letter: "ג", letterName: "Gimel", card: "The High Priestess", attr: "Moon" },
+  { n: 14, from: 2, to: 3, letter: "ד", letterName: "Daleth", card: "The Empress", attr: "Venus" },
+  { n: 15, from: 2, to: 6, letter: "ה", letterName: "He", card: "The Emperor", attr: "Aries" },
+  { n: 16, from: 2, to: 4, letter: "ו", letterName: "Vau", card: "The Hierophant", attr: "Taurus" },
+  { n: 17, from: 3, to: 6, letter: "ז", letterName: "Zayin", card: "The Lovers", attr: "Gemini" },
+  { n: 18, from: 3, to: 5, letter: "ח", letterName: "Cheth", card: "The Chariot", attr: "Cancer" },
+  { n: 19, from: 4, to: 5, letter: "ט", letterName: "Teth", card: "Strength", attr: "Leo" },
+  { n: 20, from: 4, to: 6, letter: "י", letterName: "Yod", card: "The Hermit", attr: "Virgo" },
+  { n: 21, from: 4, to: 7, letter: "כ", letterName: "Kaph", card: "Wheel of Fortune", attr: "Jupiter" },
+  { n: 22, from: 5, to: 6, letter: "ל", letterName: "Lamed", card: "Justice", attr: "Libra" },
+  { n: 23, from: 5, to: 8, letter: "מ", letterName: "Mem", card: "The Hanged Man", attr: "Water" },
+  { n: 24, from: 6, to: 7, letter: "נ", letterName: "Nun", card: "Death", attr: "Scorpio" },
+  { n: 25, from: 6, to: 9, letter: "ס", letterName: "Samekh", card: "Temperance", attr: "Sagittarius" },
+  { n: 26, from: 6, to: 8, letter: "ע", letterName: "Ayin", card: "The Devil", attr: "Capricorn" },
+  { n: 27, from: 7, to: 8, letter: "פ", letterName: "Pe", card: "The Tower", attr: "Mars" },
+  { n: 28, from: 7, to: 9, letter: "צ", letterName: "Tzaddi", card: "The Star", attr: "Aquarius" },
+  { n: 29, from: 7, to: 10, letter: "ק", letterName: "Qoph", card: "The Moon", attr: "Pisces" },
+  { n: 30, from: 8, to: 9, letter: "ר", letterName: "Resh", card: "The Sun", attr: "Sun" },
+  { n: 31, from: 8, to: 10, letter: "ש", letterName: "Shin", card: "Judgement", attr: "Fire/Spirit" },
+  { n: 32, from: 9, to: 10, letter: "ת", letterName: "Tav", card: "The Universe", attr: "Saturn/Earth" },
+];
+
+const ZODIAC_GLYPHS = { Aries:"♈", Taurus:"♉", Gemini:"♊", Cancer:"♋", Leo:"♌", Virgo:"♍", Libra:"♎", Scorpio:"♏", Sagittarius:"♐", Capricorn:"♑", Aquarius:"♒", Pisces:"♓" };
+const PLANET_GLYPHS = { Sun:"☉", Moon:"☽", Mercury:"☿", Venus:"♀", Mars:"♂", Jupiter:"♃", Saturn:"♄" };
+
+const SIGN_ORDER = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+
+let CARDS = [], LETTERS = [], SEPHIROTH = [], DECANS = [];
+let currentCard = null, currentMode = "random", currentType = "all";
+let currentRevealed = false;
+
+const el = (id) => document.getElementById(id);
+const $$ = (sel, root=document) => root.querySelectorAll(sel);
+
+async function api(path, opts={}) {
+  await loadStaticData();
+  const method = (opts.method || "GET").toUpperCase();
+  const url = new URL(path, window.location.origin);
+  if (method === "GET" && url.pathname === "/static/tarot/cards") return CARDS;
+  if (method === "GET" && url.pathname === "/static/tarot/letters") return LETTERS;
+  if (method === "GET" && url.pathname === "/static/tarot/sephiroth") return SEPHIROTH;
+  if (method === "GET" && url.pathname === "/static/tarot/decans") return DECANS;
+  if (method === "GET" && url.pathname === "/static/tarot/state") return publicState();
+  if (method === "POST" && url.pathname === "/static/tarot/draw") return publicDraw(JSON.parse(opts.body || "{}"));
+  if (method === "GET" && url.pathname === "/static/tarot/diary") return publicDiary();
+  if (method === "POST" && url.pathname === "/static/tarot/diary") return publicSaveDiary(JSON.parse(opts.body || "{}"));
+  if (method === "GET" && url.pathname === "/static/tarot/quiz") return publicQuiz(url.searchParams.get("topic") || "letters");
+  if (method === "GET" && url.pathname === "/static/tarot/journey/today") return publicToday();
+  if (method === "GET" && url.pathname === "/static/tarot/journey/curriculum") return publicCurriculum();
+  if (method === "GET" && url.pathname === "/static/tarot/journey/progress") return publicProgress();
+  if (method === "POST" && url.pathname === "/static/tarot/journey/quiz/answer") return publicQuizAnswer(JSON.parse(opts.body || "{}"));
+  const lessonMatch = url.pathname.match(/^\/static\/tarot\/journey\/lesson\/(\d+)(\/complete)?$/);
+  if (lessonMatch && method === "GET") return publicLesson(Number(lessonMatch[1]));
+  if (lessonMatch && method === "POST" && lessonMatch[2]) return publicCompleteLesson(Number(lessonMatch[1]));
+  throw new Error(`${path}: static route not implemented`);
+}
+
+let STATIC_DATA = null;
+let STATIC_PROGRESS = null;
+const STORE_KEY = "ck42x.hermeticTarot.v1";
+async function loadStaticData() {
+  if (!STATIC_DATA) { const r = await fetch("data/tarot-data.json"); if (!r.ok) throw new Error(`data/tarot-data.json: ${r.status}`); STATIC_DATA = await r.json(); CARDS = STATIC_DATA.cards; LETTERS = STATIC_DATA.letters; SEPHIROTH = STATIC_DATA.sephiroth; DECANS = STATIC_DATA.decans; }
+  return STATIC_DATA;
+}
+function defaultProgress() { const now = new Date().toISOString(); return { started_at: now, last_session_at: null, current_global: 1, completed_global: [], lesson_state: {}, quiz_log: [], draws: [] }; }
+function progressStore() { if (STATIC_PROGRESS) return STATIC_PROGRESS; try { STATIC_PROGRESS = { ...defaultProgress(), ...JSON.parse(localStorage.getItem(STORE_KEY) || "{}") }; } catch { STATIC_PROGRESS = defaultProgress(); } return STATIC_PROGRESS; }
+function saveProgress() { localStorage.setItem(STORE_KEY, JSON.stringify(progressStore())); }
+function daysAgoISO(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0,10); }
+function cardCounts() { return progressStore().draws.reduce((acc,d)=>{ acc[d.card_id]=(acc[d.card_id]||0)+1; return acc; },{}); }
+function streakDays(draws) { const days = new Set(draws.map(d => (d.drawn_at || "").slice(0,10)).filter(Boolean)); if (!days.size) return 0; let streak=0; for (let i=0;i<365;i++){ const day=daysAgoISO(i); if (days.has(day)) streak++; else if(i===0) continue; else break; } return streak; }
+function publicState() { const p=progressStore(), counts=cardCounts(); return { last_draw_date:p.draws[0]?.drawn_at?.slice(0,10)||null, streak_days:streakDays(p.draws), total_draws:p.draws.length, card_counts:counts, pass_order:p.draws.filter(d=>d.mode==="systematic").map(d=>d.card_id), total_unique_cards:Object.keys(counts).length, total_cards_in_deck:CARDS.length }; }
+function hydratePublicCard(card) { const out={...card}; if(card.hebrew_letter) out.letter=LETTERS.find(l=>l.letter===card.hebrew_letter); if(card.sephirah) out.seph=SEPHIROTH.find(s=>s.number===card.sephirah); if(card.decan_id) out.decan=DECANS.find(d=>d.id===card.decan_id); return out; }
+function publicDraw(body) { const type=body.type; let deck=CARDS.filter(c=>!type||type==="all"||c.type===type); if(!deck.length) deck=CARDS; const counts=cardCounts(); let card; if(body.mode==="systematic") card=[...deck].sort((a,b)=>(counts[a.card_id]||0)-(counts[b.card_id]||0)||a.card_id.localeCompare(b.card_id))[0]; else card=deck[Math.floor(Math.random()*deck.length)]; const p=progressStore(); p.draws.unshift({ draw_number:p.draws.length+1, card_id:card.card_id, mode:body.mode||"random", drawn_at:new Date().toISOString() }); p.last_session_at=new Date().toISOString(); saveProgress(); return { card:hydratePublicCard(card) }; }
+function publicSaveDiary(body) { const p=progressStore(); const card=CARDS.find(c=>c.card_id===body.card_id); const existing=p.draws.find(d=>d.card_id===body.card_id && !d.saved); const entry=existing||{ draw_number:p.draws.length+1, card_id:body.card_id, mode:body.mode||"random", drawn_at:new Date().toISOString() }; entry.saved=true; entry.intuition=body.intuition||""; entry.reflection=body.reflection||""; if(!existing) p.draws.unshift(entry); p.last_session_at=new Date().toISOString(); saveProgress(); return { draw_number:entry.draw_number, date:entry.drawn_at.slice(0,10), card_name:card?.name||body.card_id }; }
+function publicDiary() { const counts=cardCounts(); const byDay=new Map(); for(const d of progressStore().draws.filter(d=>d.saved)){ const card=CARDS.find(c=>c.card_id===d.card_id)||{}; const date=(d.drawn_at||new Date().toISOString()).slice(0,10); if(!byDay.has(date)) byDay.set(date,[]); byDay.get(date).push({ draw_number:d.draw_number, card_id:d.card_id, card_name:card.name||d.card_id, type:card.type||"card", gd_title:card.gd_title||"", mode:d.mode||"random", times_drawn_lifetime:counts[d.card_id]||1, intuition:d.intuition||"", reflection:d.reflection||"", drawn_at:d.drawn_at }); } return [...byDay.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([date,draws])=>({date,draws})); }
+function sample(arr,n){ const copy=[...arr]; for(let i=copy.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [copy[i],copy[j]]=[copy[j],copy[i]]; } return copy.slice(0,n); }
+function publicQuiz(topic){ if(topic==="sephiroth"){ const right=sample(SEPHIROTH,1)[0], choices=sample(SEPHIROTH.filter(s=>s.number!==right.number),3).concat(right).sort(()=>Math.random()-.5); return {topic,kind:"multiple-choice",question:`Which sephirah means ${right.meaning}?`,choices:choices.map(s=>({id:String(s.number),text:`${s.number}. ${s.name} — ${s.attribution}`})),correct_id:String(right.number),explanation:`${right.name} (${right.hebrew}) means ${right.meaning} and is attributed to ${right.attribution}.`}; } if(topic==="decans"){ const right=sample(DECANS,1)[0], choices=sample(DECANS.filter(d=>d.id!==right.id),3).concat(right).sort(()=>Math.random()-.5); const card=CARDS.find(c=>c.card_id===right.card_id); return {topic,kind:"multiple-choice",question:`Which card belongs to ${right.ruling_planet} in ${right.sign}?`,choices:choices.map(d=>({id:String(d.id),text:`${CARDS.find(c=>c.card_id===d.card_id)?.name||d.card_id} (${d.ruling_planet} in ${d.sign})`})),correct_id:String(right.id),explanation:`${right.ruling_planet} in ${right.sign}, ${right.degree_start}°-${right.degree_end}°, maps to ${card?.name||right.card_id}.`}; } if(topic==="courts"){ const courts=CARDS.filter(c=>c.type==="court"); const right=sample(courts,1)[0], choices=sample(courts.filter(c=>c.card_id!==right.card_id),3).concat(right).sort(()=>Math.random()-.5); return {topic,kind:"multiple-choice",question:`Which court card has the title “${right.gd_title}”?`,choices:choices.map(c=>({id:c.card_id,text:`${c.name} — ${c.element||c.world||"court"}`})),correct_id:right.card_id,explanation:`${right.name} carries the title “${right.gd_title}.”`}; } const right=sample(LETTERS,1)[0], choices=sample(LETTERS.filter(l=>l.letter!==right.letter),3).concat(right).sort(()=>Math.random()-.5); return {topic:"letters",kind:"multiple-choice",question:`Which path/attribution belongs to ${right.letter} (${right.hebrew})?`,choices:choices.map(l=>({id:l.letter,text:`Path ${l.path_number}, ${l.attribution}, ${l.major_card}`})),correct_id:right.letter,explanation:`${right.letter} (${right.hebrew}) is path ${right.path_number}, attribution ${right.attribution}, major card: ${right.major_card}.`}; }
+function publicQuizAnswer(body){ const p=progressStore(); p.quiz_log.push({...body, at:new Date().toISOString()}); p.last_session_at=new Date().toISOString(); saveProgress(); return {ok:true}; }
+function stageProgress(stage,completed){ const all=STATIC_DATA.lessons.filter(l=>l.stage===stage.number); return all.length?Math.round((all.filter(l=>completed.includes(l.global_number)).length/all.length)*100):0; }
+function publicProgress(){ const p=progressStore(); const completed=p.completed_global||[]; const stage_progress=Object.fromEntries(STATIC_DATA.stages.map(s=>[s.number,stageProgress(s,completed)])); const byStage=Object.fromEntries(STATIC_DATA.stages.map(s=>{ const logs=p.quiz_log.filter(q=>STATIC_DATA.lessons.find(l=>l.global_number===q.lesson_global)?.stage===s.number); return [s.number, logs.length?Math.round((logs.filter(q=>q.correct).length/logs.length)*100):null]; })); return { started_at:p.started_at, last_session_at:p.last_session_at, current_global:p.current_global||1, completed_global:completed, lesson_state:p.lesson_state||{}, quiz_log:p.quiz_log||[], stage_progress, sr_box:{}, session_count:new Set(completed).size, total_lessons:STATIC_DATA.lessons.length, stages:STATIC_DATA.stages, overall_percent:Math.round((completed.length/STATIC_DATA.lessons.length)*100), total_quiz_attempts:p.quiz_log.length, quiz_accuracy:byStage, total_draws:p.draws.length, cards_seen:Object.keys(cardCounts()).length, streak_days:streakDays(p.draws) }; }
+function withLessonFlags(lesson){ const p=progressStore(); return {...lesson, done:(p.completed_global||[]).includes(lesson.global_number), current:lesson.global_number===(p.current_global||1)}; }
+function publicToday(){ const p=progressStore(); const lesson=STATIC_DATA.lessons.find(l=>l.global_number===(p.current_global||1))||null; const progress=publicProgress(); return { today_lesson:lesson, progress, overall_percent:progress.overall_percent, completed_count:progress.completed_global.length, total_lessons:progress.total_lessons }; }
+function publicCurriculum(){ return {stages:STATIC_DATA.stages, lessons:STATIC_DATA.lessons.map(withLessonFlags)}; }
+function publicLesson(globalNumber){ const lesson=STATIC_DATA.lessons.find(l=>l.global_number===globalNumber); if(!lesson) throw new Error(`lesson ${globalNumber} not found`); return {lesson, done:progressStore().completed_global.includes(globalNumber)}; }
+function publicCompleteLesson(globalNumber){ const p=progressStore(); if(!p.completed_global.includes(globalNumber)) p.completed_global.push(globalNumber); p.completed_global.sort((a,b)=>a-b); const next=STATIC_DATA.lessons.find(l=>!p.completed_global.includes(l.global_number)); p.current_global=next?.global_number||STATIC_DATA.lessons.length; p.last_session_at=new Date().toISOString(); saveProgress(); return {ok:true,next_lesson:next||null}; }
+
+async function loadAll() {
+  [CARDS, LETTERS, SEPHIROTH, DECANS] = await Promise.all([
+    api("/static/tarot/cards"), api("/static/tarot/letters"),
+    api("/static/tarot/sephiroth"), api("/static/tarot/decans")
+  ]);
+  refreshState();
+  renderTree();
+  renderWheel();
+  renderCheat("letters");
+  loadDiary();
+}
+
+async function refreshState() {
+  const s = await api("/static/tarot/state");
+  el("s-streak").textContent = s.streak_days;
+  el("s-total").textContent = s.total_draws;
+  el("s-unique").textContent = s.total_unique_cards;
+  el("s-pass").textContent = s.pass_order.length;
+  return s;
+}
+
+
+// ============== RESEARCH / STUDY LAB ==============
+const TEACHING_SOURCES = [
+  {
+    name: "Golden Dawn Book T / The Tarot (Mathers/Felkin)",
+    use: "Primary structure for GD titles, decans, court titles, and the rule that the 36 small cards answer to the 36 decans.",
+    takeaway: "For pips, combine number/sephirah + suit/world + planet-in-sign decan; the title is the synthesis. Decan cards are modified by surrounding symbols."
+  },
+  {
+    name: "Mary K. Greer — The Golden Dawn Minor Arcana",
+    use: "Readable teaching gloss on the four Qabalistic worlds and the Golden Dawn minor-arcana construction method.",
+    takeaway: "The four suits run through Trees in the Four Worlds; meanings are arrived at by combining numbers, suits, and Kabbalah."
+  },
+  {
+    name: "U.S. Games — Hermetic Tarot / Godfrey Dowson deck description",
+    use: "Deck-specific orientation: Hermetic Tarot emphasizes Golden Dawn imagery, Tree of Life, paths, astrological signs, geomantic and numerological symbolism.",
+    takeaway: "Study the printed symbols as a data layer, not decoration: astrology, Hebrew, Tree path, angels/geomancy when available."
+  },
+  {
+    name: "LearnTarot Golden Dawn Magical Tarot description",
+    use: "Confirms a practical teaching model: majors show Hebrew letter and astrological attribution; numbered pips 2-10 correspond to zodiac decanates.",
+    takeaway: "Your drills should ask for correspondences first, then meaning; this prevents memorizing shallow keywords."
+  }
+];
+
+const NUMBER_DOCTRINE = {
+  1: "Root/potential of the suit; pure elemental seed before manifestation.",
+  2: "Initiation/fecundation: positive and negative powers first unite.",
+  3: "Realization: action definitely commences and takes form.",
+  4: "Perfection and settlement: a matter becomes fixed or established.",
+  5: "Opposition/strife: challenge, obstacle, severity, test of force.",
+  6: "Definite accomplishment: harmony, carried-out action, solar integration.",
+  7: "Force beyond the material plane: possible result dependent on action taken.",
+  8: "Solitary or temporary success: functional result without lasting root unless supported.",
+  9: "Fundamental force/executive power: restored basis, strong good or ill.",
+  10: "Fixed, culminated, complete force: matter thoroughly determined."
+};
+const SUIT_DOCTRINE = {
+  wands: "Fire / Atziluth: will, spirit, impulse, force, creative command.",
+  cups: "Water / Briah: feeling, receptivity, imagination, relationship, formative desire.",
+  swords: "Air / Yetzirah: mind, language, conflict, analysis, separation, patterning.",
+  disks: "Earth / Assiah: body, resources, work, manifestation, consequence."
+};
+const PLANET_DOCTRINE = {
+  Sun: "vitality, visibility, central purpose, integration",
+  Moon: "fluctuation, memory, body rhythm, reflection",
+  Mercury: "analysis, exchange, technique, mediation",
+  Venus: "attraction, pleasure, cohesion, value",
+  Mars: "force, rupture, courage, conflict",
+  Jupiter: "expansion, law, mercy, confidence",
+  Saturn: "boundary, time, weight, limitation"
+};
+
+function cardTeachingLayers(card) {
+  const layers = [];
+  if (card.type === "minor") {
+    layers.push(["Number / Sephirah", `${card.number || card.rank}: ${card.seph?.name || ""}. ${NUMBER_DOCTRINE[card.number] || "Read the rank as the operating mode."}`]);
+    layers.push(["Suit / World", `${card.suit || ""}: ${SUIT_DOCTRINE[card.suit] || card.world || "Suit modifies the number."}`]);
+    if (card.decan) layers.push(["Decan", `${card.decan.ruling_planet} in ${card.decan.sign}, ${card.decan.degree_start}°-${card.decan.degree_end}°. Planet = ${PLANET_DOCTRINE[card.decan.ruling_planet] || "force"}; sign = environment.`]);
+    layers.push(["GD Title", card.gd_title || "Missing: add Book T / deck title."]);
+    layers.push(["Meaning Formula", `Meaning = ${card.seph?.name || "number"} + ${card.suit || "suit"} + ${card.decan ? card.decan.ruling_planet + " in " + card.decan.sign : "decan"} → ${card.gd_title || "title"}.`]);
+  } else if (card.type === "major") {
+    layers.push(["Hebrew / Path", `${card.letter?.hebrew || ""} ${card.hebrew_letter || ""}, Path ${card.path_number || "?"}.`]);
+    layers.push(["Attribution", card.letter?.attribution || card.planet || card.zodiac || card.element || "Missing attribution."]);
+    layers.push(["Training Question", `What does this force do as a path on the Tree, before you interpret the image of ${card.name}?`]);
+    layers.push(["Meaning Formula", `Major = Hebrew letter + Tree path + astrological/elemental force + image.`]);
+  } else if (card.type === "court") {
+    layers.push(["Rank", `${card.rank}: court function / mode of agency.`]);
+    layers.push(["Element of Element", card.element || "Missing element-of-element."]);
+    layers.push(["Zodiac Span", card.zodiac || "Missing zodiac span."]);
+    layers.push(["GD Title", card.gd_title || "Missing court title."]);
+    layers.push(["Meaning Formula", `Court = rank role + ${card.element || "element"} + suit/world + zodiac span; read as person, strategy, or atmosphere.`]);
+  }
+  return layers;
+}
+
+function labNotesKey(cardId) { return `tarot.cardnotes.${cardId}`; }
+function loadLabNotes(cardId) {
+  try { return JSON.parse(localStorage.getItem(labNotesKey(cardId)) || "{}"); } catch { return {}; }
+}
+function saveLabNotes(cardId, notes) { localStorage.setItem(labNotesKey(cardId), JSON.stringify(notes)); }
+
+function renderSourceGrid() {
+  const grid = el("sourceGrid");
+  if (!grid) return;
+  grid.innerHTML = TEACHING_SOURCES.map(s => `<div class="tr-source-card"><strong>${esc(s.name)}</strong><p>${esc(s.use)}</p><p><em>${esc(s.takeaway)}</em></p></div>`).join("");
+}
+
+function renderDataCompleteness() {
+  const host = el("dataCompleteness");
+  if (!host) return;
+  const missingBookT = CARDS.filter(c => !c.book_t_meaning).length;
+  const missingIcon = CARDS.filter(c => !c.iconography_notes).length;
+  const noteCount = CARDS.filter(c => localStorage.getItem(labNotesKey(c.card_id))).length;
+  host.innerHTML = `
+    <div><b>${78-missingBookT}</b><span>Book T meanings filled</span></div>
+    <div><b>${78-missingIcon}</b><span>Iconography notes filled</span></div>
+    <div><b>${noteCount}</b><span>Your cards developed</span></div>`;
+}
+
+function initDataLab() {
+  renderSourceGrid();
+  renderDataCompleteness();
+  const sel = el("labCardSelect");
+  if (!sel || sel.dataset.ready) return;
+  sel.innerHTML = CARDS.map(c => `<option value="${c.card_id}">${c.name}${c.gd_title ? " — " + c.gd_title : ""}</option>`).join("");
+  sel.dataset.ready = "1";
+  sel.addEventListener("change", () => renderLabCard(sel.value));
+  el("btnSaveLabNotes")?.addEventListener("click", () => {
+    const id = sel.value;
+    const notes = {
+      personal_keywords: el("labKeywords").value.trim(),
+      observed_patterns: el("labPatterns").value.trim(),
+      reading_examples: el("labExamples").value.trim(),
+      source_notes: el("labSources").value.trim(),
+      updated_at: new Date().toISOString(),
+    };
+    saveLabNotes(id, notes);
+    renderDataCompleteness();
+    el("labSaveStatus").textContent = `Saved notes for ${CARDS.find(c=>c.card_id===id)?.name || id}.`;
+  });
+  el("btnExportLabNotes")?.addEventListener("click", () => {
+    const out = {};
+    for (const c of CARDS) {
+      const n = loadLabNotes(c.card_id);
+      if (Object.keys(n).length) out[c.card_id] = { card_name: c.name, ...n };
+    }
+    const blob = new Blob([JSON.stringify(out, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `tarot-card-notes-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  renderLabCard(sel.value || CARDS[0]?.card_id);
+}
+
+function renderLabCard(cardId) {
+  const body = el("labCardBody");
+  const card = CARDS.find(c => c.card_id === cardId);
+  if (!body || !card) return;
+  const full = attachClientLookups(card);
+  const notes = loadLabNotes(card.card_id);
+  const layers = cardTeachingLayers(full);
+  body.innerHTML = `
+    <div class="tr-panel-eyebrow">Card data builder</div>
+    <div class="tr-training-title">${esc(card.name)} ${card.gd_title ? `<em style="color:var(--tr-aged-gold); font-weight:400;">— ${esc(card.gd_title)}</em>` : ""}</div>
+    <div class="tr-warning-soft">Use this as your living Book T: objective correspondences first, then your personal observations. Empty Book T / iconography fields indicate source-data gaps still worth filling in the source dataset.</div>
+    <div class="tr-layer-list">${layers.map(([k,v]) => `<div class="tr-layer"><b>${esc(k)}</b><div>${esc(v)}</div></div>`).join("")}</div>
+    <div class="tr-lab-fields">
+      <div><div class="tr-field-label">Personal keywords</div><textarea class="tr-mini-textarea" id="labKeywords" placeholder="3-7 words you can actually remember...">${esc(notes.personal_keywords || "")}</textarea></div>
+      <div><div class="tr-field-label">Observed patterns</div><textarea class="tr-mini-textarea" id="labPatterns" placeholder="How this card tends to show up in real readings...">${esc(notes.observed_patterns || "")}</textarea></div>
+      <div class="full"><div class="tr-field-label">Reading examples</div><textarea class="tr-mini-textarea" id="labExamples" placeholder="Concrete situations where this card made sense...">${esc(notes.reading_examples || "")}</textarea></div>
+      <div class="full"><div class="tr-field-label">Source notes to research/fill</div><textarea class="tr-mini-textarea" id="labSources" placeholder="Book T quote, Dowson symbol, angel/geomancy note, correction needed...">${esc(notes.source_notes || "")}</textarea></div>
+    </div>`;
+}
+
+function attachClientLookups(card) {
+  const out = {...card};
+  if (card.hebrew_letter) out.letter = LETTERS.find(l => l.letter === card.hebrew_letter);
+  if (card.sephirah) out.seph = SEPHIROTH.find(s => s.number === card.sephirah);
+  if (card.decan_id) out.decan = DECANS.find(d => d.id === card.decan_id);
+  return out;
+}
+
+function openDataLabForCard(cardId) {
+  $$(".tr-tab").forEach(x => x.classList.toggle("active", x.dataset.tab === "datalab"));
+  $$(".tr-section").forEach(s => s.classList.toggle("active", s.dataset.tab === "datalab"));
+  initDataLab();
+  const sel = el("labCardSelect");
+  if (sel) { sel.value = cardId; renderLabCard(cardId); }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ============== DRAW ==============
+function renderCardFront(card) {
+  el("cardEyebrow").textContent = card.type.toUpperCase() + (card.suit ? " · " + card.suit.toUpperCase() : "");
+  el("cardTitle").textContent = card.gd_title || card.name;
+  el("cardName").textContent = card.name;
+  el("cardId").textContent = card.card_id;
+
+  const glyph = el("cardGlyph");
+  glyph.innerHTML = "";
+
+  if (card.type === "major" && card.letter) {
+    const heb = document.createElement("div");
+    heb.className = "tr-card-hebrew";
+    heb.textContent = card.letter.hebrew;
+    glyph.appendChild(heb);
+    const lbl = document.createElement("div");
+    lbl.className = "tr-card-hebrew-name";
+    lbl.textContent = `${card.letter.letter} · ${card.letter.attribution} · Path ${card.path_number}`;
+    glyph.appendChild(lbl);
+  } else if (card.type === "minor") {
+    const cluster = document.createElement("div");
+    cluster.className = "tr-card-symbol-cluster";
+    if (card.decan) {
+      const planetSign = document.createElement("div");
+      planetSign.className = "tr-card-symbols";
+      planetSign.innerHTML = `<span>${PLANET_GLYPHS[card.decan.ruling_planet]||""}</span><span style="font-size:24px;color:var(--fg-muted);">in</span><span>${ZODIAC_GLYPHS[card.decan.sign]||""}</span>`;
+      cluster.appendChild(planetSign);
+    }
+    const num = document.createElement("div");
+    num.className = "tr-card-rank-numeral";
+    num.textContent = card.rank || card.number;
+    cluster.appendChild(num);
+    if (card.seph) {
+      const lbl = document.createElement("div");
+      lbl.className = "tr-card-hebrew-name";
+      lbl.textContent = `${card.seph.name} · ${card.world?.split(" ")[0] || ""}`;
+      cluster.appendChild(lbl);
+    }
+    glyph.appendChild(cluster);
+  } else if (card.type === "court") {
+    const cluster = document.createElement("div");
+    cluster.className = "tr-card-symbol-cluster";
+    const symbol = document.createElement("div");
+    symbol.className = "tr-card-rank-numeral";
+    symbol.style.fontSize = "60px";
+    symbol.textContent = card.rank;
+    cluster.appendChild(symbol);
+    const lbl = document.createElement("div");
+    lbl.className = "tr-card-hebrew-name";
+    lbl.textContent = card.element || "";
+    cluster.appendChild(lbl);
+    glyph.appendChild(cluster);
+  }
+}
+
+
+function decodeOrderForCard(card) {
+  if (card.type === "major") return `1) Letter/path ${card.path_number || ""}. 2) Attribution ${card.letter?.attribution || card.planet || card.zodiac || card.element || ""}. 3) Image/title. 4) Your situation.`;
+  if (card.type === "minor") return `1) Sephirah/rank ${card.seph?.number || card.sephirah || ""}. 2) Suit/world ${card.world || card.suit || ""}. 3) Decan ${card.decan ? card.decan.ruling_planet + " in " + card.decan.sign : ""}. 4) GD title.`;
+  if (card.type === "court") return `1) Court rank ${card.rank || ""}. 2) Elemental nature ${card.element || ""}. 3) Suit/world ${card.world || card.suit || ""}. 4) Person, strategy, or atmosphere.`;
+  return "Structure → attribution → image → lived example.";
+}
+
+function studyPromptForCard(card) {
+  if (card.type === "major") return `Before interpreting ${card.name}, recite its Hebrew letter and attribution. What does that force do on the Tree?`;
+  if (card.type === "minor") return `Read ${card.name} as number + suit + decan. What changes if you remove the picture and only keep those three layers?`;
+  if (card.type === "court") return `Ask whether ${card.name} is showing a person, a role you must inhabit, or a temperament active in the situation.`;
+  return "Write one sentence from structure, one from intuition, then compare them.";
+}
+
+function renderAttributions(card) {
+  const t = el("attrTable");
+  const rows = [];
+  rows.push(`<tr><td>Type</td><td>${card.type}${card.rank ? " · "+card.rank : ""}${card.suit ? " · "+card.suit : ""}</td></tr>`);
+  if (card.gd_title) rows.push(`<tr><td>GD Title</td><td><em>${card.gd_title}</em></td></tr>`);
+  if (card.letter) rows.push(`<tr><td>Hebrew</td><td><span class="heb">${card.letter.hebrew}</span> ${card.letter.letter} — ${card.letter.attribution} <span class="tr-card-id" style="margin-left:6px;">[${card.letter.category}]</span></td></tr>`);
+  if (card.path_number) rows.push(`<tr><td>Path</td><td>${card.path_number} on the Tree</td></tr>`);
+  if (card.seph) rows.push(`<tr><td>Sephirah</td><td>${card.seph.number}. ${card.seph.name} <em>(${card.seph.meaning})</em> — ${card.seph.attribution}</td></tr>`);
+  if (card.world) rows.push(`<tr><td>World</td><td>${card.world}</td></tr>`);
+  if (card.element) rows.push(`<tr><td>Element</td><td>${card.element}</td></tr>`);
+  if (card.zodiac) rows.push(`<tr><td>Zodiac</td><td>${ZODIAC_GLYPHS[card.zodiac]||""} ${card.zodiac}</td></tr>`);
+  if (card.planet) rows.push(`<tr><td>Planet</td><td>${PLANET_GLYPHS[card.planet]||""} ${card.planet}</td></tr>`);
+  if (card.decan) rows.push(`<tr><td>Decan</td><td>${card.decan.ruling_planet} in ${card.decan.sign}, decan ${card.decan.decan_in_sign} (${card.decan.degree_start}°-${card.decan.degree_end}°)</td></tr>`);
+  rows.push(`<tr><td>Decode Order</td><td>${decodeOrderForCard(card)}</td></tr>`);
+  rows.push(`<tr><td>Study Prompt</td><td>${studyPromptForCard(card)}</td></tr>`);
+  rows.push(`<tr><td>Develop Data</td><td><button class="tr-btn ghost" style="padding:7px 10px;font-size:9px;" onclick="openDataLabForCard('${card.card_id}')">Open in Study Lab</button></td></tr>`);
+  t.innerHTML = `<tbody>${rows.join("")}</tbody>`;
+}
+
+el("btnDraw").addEventListener("click", async () => {
+  el("btnDraw").disabled = true;
+  el("btnDraw").textContent = "Drawing…";
+  try {
+    const body = { mode: currentMode };
+    if (currentType !== "all") body.type = currentType;
+    const res = await api("/static/tarot/draw", { method: "POST", body: JSON.stringify(body) });
+    currentCard = res.card;
+    currentRevealed = false;
+    el("card").classList.remove("flipped");
+    renderCardFront(res.card);
+    el("attrTable").innerHTML = `<tbody><tr><td colspan="2" class="tr-attr-empty">Sit with the card. Write your intuition. Then reveal.</td></tr></tbody>`;
+    el("btnReveal").disabled = false;
+    el("btnSave").disabled = true;
+    el("intuition").value = "";
+    el("reflection").value = "";
+    el("saveStatus").textContent = "";
+    refreshState();
+    if (document.querySelector(".tr-tab.active").dataset.tab === "cheat" && el("cheatBody").querySelector(".tr-grid")) {
+      renderCheat("status");
+    }
+  } finally {
+    el("btnDraw").disabled = false;
+    el("btnDraw").textContent = "Draw a Card";
+  }
+});
+
+el("btnReveal").addEventListener("click", () => {
+  if (!currentCard) return;
+  el("card").classList.add("flipped");
+  setTimeout(() => {
+    renderAttributions(currentCard);
+    currentRevealed = true;
+    el("btnReveal").disabled = true;
+    el("btnSave").disabled = false;
+  }, 450);
+});
+
+el("btnSave").addEventListener("click", async () => {
+  if (!currentCard) return;
+  el("btnSave").disabled = true;
+  el("saveStatus").textContent = "Saving…";
+  try {
+    const res = await api("/static/tarot/diary", { method: "POST", body: JSON.stringify({
+      card_id: currentCard.card_id,
+      intuition: el("intuition").value,
+      reflection: el("reflection").value,
+      mode: currentMode,
+    })});
+    el("saveStatus").textContent = `✓ Saved as draw ${res.draw_number} on ${res.date}`;
+    refreshState();
+    loadDiary();
+  } catch (e) {
+    el("saveStatus").textContent = "✗ Save failed";
+  } finally {
+    setTimeout(() => { el("btnSave").disabled = false; }, 800);
+  }
+});
+
+$$("[data-mode]").forEach(b => b.addEventListener("click", () => {
+  $$("[data-mode]").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  currentMode = b.dataset.mode;
+}));
+$$("[data-type]").forEach(b => b.addEventListener("click", () => {
+  $$("[data-type]").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  currentType = b.dataset.type;
+}));
+
+// ============== TABS ==============
+$$(".tr-tab").forEach(t => t.addEventListener("click", () => {
+  const target = t.dataset.tab;
+  $$(".tr-tab").forEach(x => x.classList.toggle("active", x === t));
+  $$(".tr-section").forEach(s => s.classList.toggle("active", s.dataset.tab === target));
+  if (target === "diary") loadDiary();
+  if (target === "datalab") initDataLab();
+}));
+
+// ============== TREE OF LIFE ==============
+function renderTree() {
+  const svg = el("treeSvg");
+  let html = "";
+  for (const p of PATHS_DATA) {
+    const a = SEPH_COORDS[p.from], b = SEPH_COORDS[p.to];
+    const mx = (a.x + b.x)/2, my = (a.y + b.y)/2;
+    html += `<line class="path-line" data-path="${p.n}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+    html += `<text class="path-letter" x="${mx}" y="${my+5}" data-path="${p.n}">${p.letter}</text>`;
+  }
+  for (const [n, s] of Object.entries(SEPH_COORDS)) {
+    html += `<circle class="seph-circle" data-seph="${n}" cx="${s.x}" cy="${s.y}" r="32"></circle>`;
+    html += `<text class="seph-num" x="${s.x}" y="${s.y - 2}">${n}</text>`;
+    html += `<text class="seph-name" x="${s.x}" y="${s.y + 14}">${s.name.toUpperCase()}</text>`;
+  }
+  svg.innerHTML = html;
+  $$(".path-line, .path-letter", svg).forEach(elm => {
+    elm.addEventListener("mouseenter", () => showPath(parseInt(elm.dataset.path)));
+    elm.addEventListener("click", () => showPath(parseInt(elm.dataset.path)));
+  });
+  $$(".seph-circle", svg).forEach(elm => {
+    elm.addEventListener("mouseenter", () => showSeph(parseInt(elm.dataset.seph)));
+    elm.addEventListener("click", () => showSeph(parseInt(elm.dataset.seph)));
+  });
+}
+
+function showPath(n) {
+  $$(".path-line, .path-letter").forEach(x => x.classList.toggle("active", parseInt(x.dataset.path)===n));
+  $$(".seph-circle").forEach(x => x.classList.remove("active"));
+  const p = PATHS_DATA.find(x => x.n === n);
+  if (!p) return;
+  el("treeInfo").innerHTML = `
+    <div class="tr-panel-eyebrow">Path ${p.n} · ${p.letterName}</div>
+    <div style="font-family: var(--tr-hebrew); font-size: 110px; color: var(--tr-aged-gold); line-height: 1; margin: 14px 0;">${p.letter}</div>
+    <div class="tr-panel-title">${p.card}</div>
+    <table class="tr-attr-table" style="margin-top: 14px;">
+      <tr><td>Letter</td><td>${p.letterName} (${p.letter})</td></tr>
+      <tr><td>Path</td><td>${p.n}</td></tr>
+      <tr><td>Connects</td><td>${SEPH_COORDS[p.from].name} → ${SEPH_COORDS[p.to].name}</td></tr>
+      <tr><td>Attribution</td><td>${p.attr}</td></tr>
+    </table>`;
+}
+
+function showSeph(n) {
+  $$(".seph-circle").forEach(x => x.classList.toggle("active", parseInt(x.dataset.seph)===n));
+  $$(".path-line, .path-letter").forEach(x => x.classList.remove("active"));
+  const s = SEPHIROTH.find(x => x.number === n);
+  const cards = CARDS.filter(c => c.sephirah === n);
+  el("treeInfo").innerHTML = `
+    <div class="tr-panel-eyebrow">Sephirah ${n}</div>
+    <div class="tr-panel-title">${s.name} <span style="font-family: var(--tr-hebrew); color: var(--tr-aged-gold); margin-left: 6px;">${s.hebrew}</span></div>
+    <table class="tr-attr-table" style="margin-top: 14px;">
+      <tr><td>Meaning</td><td>${s.meaning}</td></tr>
+      <tr><td>Attribution</td><td>${s.attribution}</td></tr>
+      <tr><td>Cards</td><td>${cards.map(c => c.name).join("<br>")}</td></tr>
+    </table>`;
+}
+
+// ============== DECAN WHEEL ==============
+function renderWheel() {
+  const svg = el("wheelSvg");
+  const rOuter = 240, rDecan = 180, rGlyph = 215, rSign = 250, rNum = 200;
+  let html = "";
+  // 36 wedges, each 10°. Start at -90 (top) going clockwise
+  for (let i = 0; i < 36; i++) {
+    const a0 = -90 + i*10;
+    const a1 = a0 + 10;
+    const sign = SIGN_ORDER[Math.floor(i/3)];
+    const decanInSign = (i%3) + 1;
+    const decan = DECANS.find(d => d.sign === sign && d.decan_in_sign === decanInSign);
+    const card = CARDS.find(c => c.card_id === decan?.card_id);
+    const x0 = Math.cos(a0*Math.PI/180)*rDecan, y0 = Math.sin(a0*Math.PI/180)*rDecan;
+    const x1 = Math.cos(a1*Math.PI/180)*rDecan, y1 = Math.sin(a1*Math.PI/180)*rDecan;
+    const x0o = Math.cos(a0*Math.PI/180)*rOuter, y0o = Math.sin(a0*Math.PI/180)*rOuter;
+    const x1o = Math.cos(a1*Math.PI/180)*rOuter, y1o = Math.sin(a1*Math.PI/180)*rOuter;
+    const path = `M ${x0} ${y0} L ${x0o} ${y0o} A ${rOuter} ${rOuter} 0 0 1 ${x1o} ${y1o} L ${x1} ${y1} A ${rDecan} ${rDecan} 0 0 0 ${x0} ${y0} Z`;
+    const fill = i%2===0 ? "rgba(212,165,65,0.04)" : "rgba(212,165,65,0.02)";
+    html += `<path class="decan-wedge" data-decan="${decan?.id||""}" d="${path}" fill="${fill}"></path>`;
+    const aMid = (a0+a1)/2;
+    const xn = Math.cos(aMid*Math.PI/180)*rNum, yn = Math.sin(aMid*Math.PI/180)*rNum + 3;
+    html += `<text class="decan-num" x="${xn}" y="${yn}">${PLANET_GLYPHS[decan?.ruling_planet]||""}</text>`;
+  }
+  // 12 sign glyphs at outer ring
+  for (let i = 0; i < 12; i++) {
+    const aMid = -90 + i*30 + 15;
+    const x = Math.cos(aMid*Math.PI/180)*rSign;
+    const y = Math.sin(aMid*Math.PI/180)*rSign + 6;
+    const sign = SIGN_ORDER[i];
+    html += `<text class="sign-glyph" x="${x}" y="${y}">${ZODIAC_GLYPHS[sign]}</text>`;
+  }
+  // dividing rings + sign-boundary lines
+  html += `<circle r="${rDecan}" fill="none" stroke="var(--tr-line)" stroke-width="0.6"/>`;
+  html += `<circle r="${rOuter}" fill="none" stroke="var(--tr-line)" stroke-width="0.6"/>`;
+  for (let i = 0; i < 12; i++) {
+    const a = -90 + i*30;
+    const x1 = Math.cos(a*Math.PI/180)*rDecan, y1 = Math.sin(a*Math.PI/180)*rDecan;
+    const x2 = Math.cos(a*Math.PI/180)*rOuter, y2 = Math.sin(a*Math.PI/180)*rOuter;
+    html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--tr-aged-gold)" stroke-width="0.8" opacity="0.5"/>`;
+  }
+  svg.innerHTML = html;
+  $$(".decan-wedge", svg).forEach(elm => {
+    elm.addEventListener("mouseenter", () => showDecan(parseInt(elm.dataset.decan)));
+    elm.addEventListener("click", () => showDecan(parseInt(elm.dataset.decan)));
+  });
+}
+
+function showDecan(id) {
+  $$(".decan-wedge").forEach(x => x.classList.toggle("active", parseInt(x.dataset.decan)===id));
+  const d = DECANS.find(x => x.id === id);
+  if (!d) return;
+  const card = CARDS.find(c => c.card_id === d.card_id);
+  el("wheelInfo").innerHTML = `
+    <div class="tr-panel-eyebrow">Decan ${d.id}</div>
+    <div style="font-family: var(--tr-hebrew); font-size: 90px; color: var(--tr-aged-gold); line-height: 1; margin: 14px 0;">${PLANET_GLYPHS[d.ruling_planet]||""} <span style="opacity:0.5; font-size: 60px;">in</span> ${ZODIAC_GLYPHS[d.sign]||""}</div>
+    <div class="tr-panel-title">${card?.name||""}</div>
+    <p style="font-family: var(--tr-serif); font-size: 16px; color: var(--tr-parchment); font-style: italic; margin-top: 4px;">${card?.gd_title||""}</p>
+    <table class="tr-attr-table" style="margin-top: 14px;">
+      <tr><td>Sign</td><td>${d.sign} (decan ${d.decan_in_sign})</td></tr>
+      <tr><td>Ruler</td><td>${d.ruling_planet}</td></tr>
+      <tr><td>Degrees</td><td>${d.degree_start}° - ${d.degree_end}°</td></tr>
+      <tr><td>Sephirah</td><td>${card?.sephirah ? card.sephirah + ". " + SEPHIROTH.find(s=>s.number===card.sephirah)?.name : ""}</td></tr>
+    </table>`;
+}
+
+// ============== CHEAT ==============
+$$(".tr-subtab[data-cheat]").forEach(b => b.addEventListener("click", () => {
+  $$(".tr-subtab[data-cheat]").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  renderCheat(b.dataset.cheat);
+}));
+
+async function renderCheat(view) {
+  const body = el("cheatBody");
+  if (view === "letters") {
+    body.innerHTML = `<table class="tr-table">
+      <thead><tr><th>Path</th><th>Letter</th><th>Heb</th><th>Major Card</th><th>Attribution</th><th>Class</th></tr></thead>
+      <tbody>${LETTERS.map(l =>
+        `<tr><td>${l.path_number}</td><td>${l.letter}</td><td><span class="heb">${l.hebrew}</span></td><td>${l.major_card}</td><td>${l.attribution}</td><td class="mono">${l.category}</td></tr>`
+      ).join("")}</tbody></table>`;
+  } else if (view === "sephiroth") {
+    body.innerHTML = `<table class="tr-table">
+      <thead><tr><th>#</th><th>Name</th><th>Heb</th><th>Meaning</th><th>Attribution</th></tr></thead>
+      <tbody>${SEPHIROTH.map(s =>
+        `<tr><td>${s.number}</td><td>${s.name}</td><td><span class="heb">${s.hebrew}</span></td><td>${s.meaning}</td><td>${s.attribution}</td></tr>`
+      ).join("")}</tbody></table>`;
+  } else if (view === "decans") {
+    body.innerHTML = `<table class="tr-table">
+      <thead><tr><th>#</th><th>Sign</th><th>Decan</th><th>Ruler</th><th>Range</th><th>Card</th></tr></thead>
+      <tbody>${DECANS.map(d => {
+        const c = CARDS.find(x => x.card_id === d.card_id);
+        return `<tr><td>${d.id}</td><td>${ZODIAC_GLYPHS[d.sign]||""} ${d.sign}</td><td>${d.decan_in_sign}</td><td>${PLANET_GLYPHS[d.ruling_planet]||""} ${d.ruling_planet}</td><td class="mono">${d.degree_start}°-${d.degree_end}°</td><td>${c?.name||""}</td></tr>`;
+      }).join("")}</tbody></table>`;
+  } else if (view === "cards") {
+    body.innerHTML = `<table class="tr-table">
+      <thead><tr><th>ID</th><th>Card</th><th>GD Title</th><th>Type</th></tr></thead>
+      <tbody>${CARDS.map(c =>
+        `<tr><td class="mono">${c.card_id}</td><td>${c.name}</td><td><em>${c.gd_title||""}</em></td><td class="mono">${c.type}</td></tr>`
+      ).join("")}</tbody></table>`;
+  } else if (view === "status") {
+    const s = await api("/static/tarot/state");
+    const counts = s.card_counts || {};
+    body.innerHTML = `<div class="tr-grid">${CARDS.map(c => {
+      const cnt = counts[c.card_id] || 0;
+      const cls = cnt >= 3 ? "tr-cell seen seen-3" : cnt > 0 ? "tr-cell seen" : "tr-cell";
+      return `<div class="${cls}" title="${c.name}${cnt?' · seen '+cnt:''}" data-card="${c.card_id}">${c.card_id.slice(0,2).toUpperCase()}${cnt?'<span class="cnt">'+cnt+'</span>':''}</div>`;
+    }).join("")}</div>
+    <p style="color: var(--fg-dim); font-size: 12px; font-family: var(--tr-serif); font-style: italic;">${Object.keys(counts).length} of 78 cards seen. Cards appear amber once drawn, brighter at 3+ draws (mastery threshold).</p>`;
+  }
+}
+
+// ============== DIARY ==============
+async function loadDiary() {
+  const entries = await api("/static/tarot/diary?days=14");
+  if (!entries.length) {
+    el("diaryBody").innerHTML = `<div class="tr-panel"><div class="tr-attr-empty">No diary entries yet. Draw a card and save your first entry.</div></div>`;
+    return;
+  }
+  el("diaryBody").innerHTML = entries.map(day => `
+    <div class="tr-diary-day">
+      <div class="tr-diary-date">${day.date} · ${day.draws.length} draw${day.draws.length>1?"s":""}</div>
+      ${day.draws.map(d => `
+        <div class="tr-diary-draw">
+          <div class="tr-diary-card-name">${d.card_name}</div>
+          <div class="tr-diary-card-meta">${d.type} · ${d.mode} · drawn ${d.times_drawn_lifetime}× lifetime${d.gd_title ? " · "+d.gd_title : ""}</div>
+          <div class="tr-diary-block-label">Intuition</div>
+          <div class="tr-diary-prose ${d.intuition?"":"empty"}">${esc(d.intuition || "(none recorded)")}</div>
+          <div class="tr-diary-block-label">Reflection</div>
+          <div class="tr-diary-prose ${d.reflection?"":"empty"}">${esc(d.reflection || "(open — fill in tonight)")}</div>
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+}
+
+// ============== QUIZ ==============
+let quizState = null;
+$$(".tr-subtab[data-quiz]").forEach(b => b.addEventListener("click", () => {
+  $$(".tr-subtab[data-quiz]").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  loadQuiz(b.dataset.quiz);
+}));
+
+async function loadQuiz(topic) {
+  const q = await api(`/static/tarot/quiz?topic=${topic}`);
+  quizState = q;
+  el("quizBody").innerHTML = `
+    <div class="tr-quiz-card">
+      <div class="tr-panel-eyebrow">${q.topic}</div>
+      <div class="tr-quiz-q">${q.question}</div>
+      <div class="tr-quiz-choices">
+        ${q.choices.map(c => `<button class="tr-choice" data-id="${c.id}">${c.text}</button>`).join("")}
+      </div>
+      <div id="quizResult"></div>
+    </div>`;
+  $$(".tr-choice").forEach(btn => btn.addEventListener("click", () => {
+    const id = btn.dataset.id;
+    const correct = id === quizState.correct_id;
+    $$(".tr-choice").forEach(b => {
+      if (b.dataset.id === quizState.correct_id) b.classList.add("correct");
+      else if (b.dataset.id === id) b.classList.add("wrong");
+      b.disabled = true;
+    });
+    el("quizResult").innerHTML = `<div class="tr-quiz-explain"><strong>${correct?"Correct.":"Not quite."}</strong> ${quizState.explanation}</div>
+    <div style="margin-top: 14px;"><button class="tr-btn ghost" id="btnNextQ">Next Question</button></div>`;
+    el("btnNextQ").addEventListener("click", () => loadQuiz(quizState.topic));
+  }));
+}
+
+// ============== JOURNEY / TODAY ==============
+let journeyToday = null, currentLesson = null, lessonState = null;
+
+async function loadToday() {
+  try {
+    const t = await api("/static/tarot/journey/today");
+    journeyToday = t;
+    const body = el("todayBody");
+    if (!t.today_lesson) {
+      body.innerHTML = `<div class="tr-journey-stage-badge">JOURNEY COMPLETE</div>
+        <div class="tr-journey-lesson-title">All 148 lessons completed.</div>
+        <div class="tr-journey-lesson-sub">The structural foundation is laid. Pathworking is the next phase.</div>`;
+      el("actBeginTitle").textContent = "Journey Complete";
+      el("actBeginDesc").textContent = "Free-draw mode and pathworking practice from here.";
+    } else {
+      const l = t.today_lesson;
+      body.innerHTML = `
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="tr-journey-day-num">${l.global_number}</div>
+          <div>
+            <div class="tr-journey-stage-badge">STAGE ${l.stage} · ${l.stage_name.toUpperCase()}</div>
+            <div class="tr-journey-lesson-title">${l.title}</div>
+            <div class="tr-journey-lesson-sub">${l.intro.split(". ").slice(0, 2).join(". ")}.</div>
+          </div>
+        </div>`;
+      el("actBeginTitle").textContent = "Begin: " + l.title.replace(/^\d+\.\s*/, "").substring(0, 60);
+    }
+    el("overallFill").style.width = t.overall_percent + "%";
+    el("overallPct").textContent = t.overall_percent + "%";
+    el("overallCounts").textContent = `${t.completed_count} / ${t.total_lessons} lessons`;
+    renderStagesGrid(t);
+    renderTodayCoach(t);
+  } catch (e) {
+    el("todayBody").innerHTML = `<div class="tr-attr-empty">Curriculum not loaded. Reload the page and try again.</div>`;
+  }
+}
+
+function renderStagesGrid(t) {
+  const stages = [
+    { number: 1, name: "Sephiroth", aim: "Numbers + planetary powers behind every pip" },
+    { number: 2, name: "Letters", aim: "Hebrew paths + majors as forces in motion" },
+    { number: 3, name: "Decans", aim: "36 zodiac slices that generate the pip titles" },
+    { number: 4, name: "Courts", aim: "Elemental roles, agency, and temperament" },
+    { number: 5, name: "Decode Pass", aim: "Prove you can derive meanings from structure" },
+  ];
+  const sp = t.progress?.stage_progress || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  el("stagesGrid").innerHTML = stages.map(s => `
+    <div class="tr-stage-card">
+      <div class="tr-stage-num">STAGE ${s.number}</div>
+      <div class="tr-stage-title">${s.name}</div>
+      <div class="tr-stage-bar"><div class="tr-stage-fill" style="width: ${sp[s.number] || 0}%;"></div></div>
+      <div class="tr-stage-meta">${sp[s.number] || 0}% complete</div><div class="tr-journey-action-desc" style="margin-top:8px; font-size:12px;">${s.aim}</div>
+    </div>`).join("");
+}
+
+el("actBeginLesson").addEventListener("click", () => {
+  if (journeyToday?.today_lesson) openLesson(journeyToday.today_lesson.global_number);
+});
+el("actDailyDraw").addEventListener("click", () => {
+  $$(".tr-tab").forEach(x => x.classList.toggle("active", x.dataset.tab === "draw"));
+  $$(".tr-section").forEach(s => s.classList.toggle("active", s.dataset.tab === "draw"));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+async function openLesson(globalNumber) {
+  const r = await api(`/static/tarot/journey/lesson/${globalNumber}`);
+  currentLesson = r.lesson;
+  lessonState = { quizAnswers: {}, allQuizDone: false };
+  renderLessonModal(r.lesson, r.done);
+  el("lessonModal").classList.add("open");
+}
+
+function closeLesson() { el("lessonModal").classList.remove("open"); }
+
+
+
+const CORE_GLOSSARY = {
+  pip: ["Pip card", "A numbered minor card: Ace through Ten. Example: Four of Cups. Not a court card, not a Major Arcana card."],
+  sephirah: ["Sephirah", "One sphere on the Tree of Life. In this app, sephiroth are the number-system behind pip cards: 4 = Chesed, so every Four carries Chesed-flavor."],
+  chesed: ["Chesed", "Hebrew for Mercy/Loving-kindness. In tarot training, it means stable generous order: a kingdom, container, or structure that gives support."],
+  mercy: ["Mercy", "Not just 'being nice.' Here it means benevolent power: strength that protects, permits growth, gives room, and establishes order without crushing."],
+  attribution: ["Attribution", "A correspondence assigned by the system. Example: Chesed is attributed to Jupiter, so Jupiter-like themes color Chesed: expansion, generosity, law, confidence."],
+  decan: ["Decan", "A 10-degree slice of the zodiac. The numbered minor cards 2-10 each belong to one decan, such as Moon in Cancer."],
+  gdtitle: ["GD Title", "Golden Dawn title: a compressed meaning-label for a card. Example: Four of Wands = Perfected Work."],
+  four: ["Fours", "All Four cards are about stabilization: something has taken shape, become established, or settled into a container."]
+};
+
+function renderGlossary(keys) {
+  return `<div class="tr-glossary-grid">${keys.map(k => {
+    const g = CORE_GLOSSARY[k];
+    return g ? `<div class="tr-glossary-term"><b>${esc(g[0])}</b><span>${esc(g[1])}</span></div>` : "";
+  }).join("")}</div>`;
+}
+
+function beginnerPrimerForLesson(lesson) {
+  const d = lesson.data || {};
+  if (lesson.type === "sephirah") {
+    return `
+      <div class="tr-beginner-box">
+        <div class="tr-beginner-title">Start here — plain English</div>
+        <div class="tr-beginner-prose">
+          <p>You are learning the number-system underneath the tarot deck. A <strong>pip card</strong> is simply a numbered minor card: Ace through Ten.</p>
+          <p>Today's number is <strong>${esc(d.number)}</strong>. In the Golden Dawn / Tree of Life system, number ${esc(d.number)} is called <strong>${esc(d.name)}</strong>, a Hebrew word meaning <strong>${esc(d.meaning)}</strong>.</p>
+          <p>So when you see any <strong>${rankLabel(d.number)}</strong>, first think: <strong>${esc(d.name)} = ${esc(d.meaning)}</strong>. Then ask how that idea changes in Wands, Cups, Swords, or Disks.</p>
+        </div>
+        ${renderGlossary(["pip","sephirah","chesed","mercy","attribution","four"])}
+      </div>`;
+  }
+  if (lesson.type === "letter") {
+    return `
+      <div class="tr-beginner-box">
+        <div class="tr-beginner-title">Start here — plain English</div>
+        <div class="tr-beginner-prose"><p>You are learning why a Major Arcana card means what it means. In this system each Major is tied to a Hebrew letter, a Tree path, and an attribution such as a planet, zodiac sign, or element.</p></div>
+        ${renderGlossary(["attribution","sephirah"])}
+      </div>`;
+  }
+  if (lesson.type === "decan-group") {
+    return `
+      <div class="tr-beginner-box">
+        <div class="tr-beginner-title">Start here — plain English</div>
+        <div class="tr-beginner-prose"><p>You are learning the astrology layer behind the numbered minor cards. A decan is one 10-degree slice of a zodiac sign. Each pip from 2 through 10 has one.</p></div>
+        ${renderGlossary(["pip","decan","gdtitle"])}
+      </div>`;
+  }
+  return `
+    <div class="tr-beginner-box">
+      <div class="tr-beginner-title">Start here — plain English</div>
+      <div class="tr-beginner-prose"><p>Read the card in layers: first identify the system facts, then translate them into a human situation.</p></div>
+      ${renderGlossary(["attribution","gdtitle"])}
+    </div>`;
+}
+
+function plainExamplesForLesson(lesson) {
+  const d = lesson.data || {};
+  if (lesson.type === "sephirah" && d.number === 4) {
+    return `
+      <div class="tr-lesson-card full">
+        <h3>Concrete examples</h3>
+        <div class="tr-example-strip">
+          <div class="tr-example-row"><strong>Chesed in life:</strong> a stable home, a good mentor, a healthy routine, a fair rule, money/resources used generously, leadership that protects instead of dominates.</div>
+          <div class="tr-example-row"><strong>Mercy as a tarot force:</strong> power with enough room to let something grow. Too little mercy becomes harshness; too much becomes complacency or indulgence.</div>
+          <div class="tr-example-row"><strong>Why Fours?</strong> Four is the shape of a table, room, square, foundation, or kingdom. It holds things in place.</div>
+        </div>
+      </div>`;
+  }
+  if (lesson.type === "sephirah") {
+    return `
+      <div class="tr-lesson-card full">
+        <h3>Concrete translation</h3>
+        <p>When this number appears in a card, translate the Hebrew/Qabalistic word into a normal-life pattern first. Then combine it with the suit.</p>
+      </div>`;
+  }
+  return "";
+}
+
+function plainDecodeWalkthrough(lesson) {
+  const d = lesson.data || {};
+  if (lesson.type === "sephirah") {
+    return `
+      <div class="tr-lesson-card full">
+        <h3>How to read this lesson</h3>
+        <ol class="tr-plain-steps">
+          <li>Memorize the number: <strong>${esc(d.number)} = ${esc(d.name)}</strong>.</li>
+          <li>Translate the word: <strong>${esc(d.name)} = ${esc(d.meaning)}</strong>.</li>
+          <li>Translate the planet/attribution: <strong>${esc(d.attribution)}</strong> means the style or flavor of the force.</li>
+          <li>Apply it to pips: every <strong>${rankSingular(d.number)}</strong> starts from this same baseline, then the suit changes how it behaves.</li>
+        </ol>
+      </div>`;
+  }
+  return "";
+}
+
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[ch]));
+}
+
+function rankLabel(n) {
+  const names = {1:"Aces",2:"Twos",3:"Threes",4:"Fours",5:"Fives",6:"Sixes",7:"Sevens",8:"Eights",9:"Nines",10:"Tens"};
+  return names[n] || (n ? `${n}s` : "—");
+}
+function rankSingular(n) {
+  const names = {1:"Ace",2:"Two",3:"Three",4:"Four",5:"Five",6:"Six",7:"Seven",8:"Eight",9:"Nine",10:"Ten"};
+  return names[n] || String(n || "—");
+}
+
+function cardListForSephirah(n) {
+  return CARDS.filter(c => c.sephirah === n).map(c => c.gd_title ? `${c.name} — ${c.gd_title}` : c.name);
+}
+
+function lessonBlueprint(lesson) {
+  const d = lesson.data || {};
+  const title = esc(lesson.title || "Today's lesson");
+  if (lesson.type === "sephirah") {
+    const cards = cardListForSephirah(d.number);
+    return {
+      memory: [
+        ["Name", `${d.number}. ${d.name} — ${d.meaning}`],
+        ["Hebrew", d.hebrew || "—"],
+        ["Attribution", d.attribution || "—"],
+        ["Pip Rank", rankLabel(d.number)]
+      ],
+      formula: `Numbered minor card = number meaning (${d.number} / ${d.name} / ${d.meaning}) + suit element + astrology/decan. Learn the plain meaning first; decode second.`,
+      read: `${d.name} means ${d.meaning}. For ${rankLabel(d.number)}, this is the baseline: a stable container, foundation, or established pattern. The suit tells you what kind of life-stuff is being stabilized.`,
+      compare: cards.length ? cards : [`Pull the four ${rankLabel(d.number)} from the deck and compare them side by side.`],
+      prompts: [
+        `Where does ${d.meaning} appear as a gift, and where does it become excess?`,
+        `How would ${d.attribution} behave differently in Fire, Water, Air, and Earth?`,
+        `Name the rank before you name the card meaning: ${rankLabel(d.number)} = ${d.name}.`
+      ]
+    };
+  }
+  if (lesson.type === "letter") {
+    return {
+      memory: [["Letter", `${d.letter} · ${d.hebrew}`], ["Path", d.path_number || "—"], ["Major", d.major_card || "—"], ["Attribution", d.attribution || "—"]],
+      formula: `Major card = Hebrew letter + Tree path + astrological/elemental attribution. Decode those before reaching for a canned meaning.`,
+      read: `${d.letter} is the key. Ask how ${d.attribution} moves between the two sephiroth of Path ${d.path_number}.`,
+      compare: [`Trace Path ${d.path_number} on the Tree.`, `Say: ${d.hebrew} / ${d.letter} / ${d.attribution} / ${d.major_card}.`],
+      prompts: [`What does ${d.attribution} do as a force?`, `Why would this force belong to ${d.major_card}?`, `What changes if you read the card as a path instead of an image?`]
+    };
+  }
+  if (lesson.type === "decan-group") {
+    const decs = d.decans || [];
+    const cards = d.cards || [];
+    return {
+      memory: [["Sign", decs[0]?.sign || "—"], ["Decans", decs.map(x => `${x.ruling_planet} ${x.degree_start}°-${x.degree_end}°`).join(" · ") || "—"], ["Cards", cards.map(c => c?.name).filter(Boolean).join(" · ") || "—"], ["Rule", "10° = one pip card"]],
+      formula: `Minor 2-10 = zodiac sign + decan ruler + sephirah/rank. The title is the synthesis, not the starting point.`,
+      read: `Read the three decans as a sequence: first impulse, middle stabilization, final transition of the sign.`,
+      compare: cards.map((c,i) => `${decs[i]?.ruling_planet || "Planet"} in ${decs[i]?.sign || "sign"} → ${c?.name || "card"} — ${c?.gd_title || ""}`),
+      prompts: [`What does the planet want?`, `What does the sign permit or resist?`, `How does the sephirah/rank shape the outcome?`]
+    };
+  }
+  if (lesson.type === "court") {
+    return {
+      memory: [["Card", d.name || title], ["Title", d.gd_title || "—"], ["Element", d.element || "—"], ["World/Suit", d.world || "—"]],
+      formula: `Court card = rank function + suit element + elemental dignity + zodiac span. Read it as a mode of agency, not merely a person.`,
+      read: `${d.name} asks: what kind of will, temperament, or role is acting through ${d.element || "this element"}?`,
+      compare: [`Compare this court to the same rank in the other suits.`, `Compare it to the pip cards in its zodiac span.`],
+      prompts: [`Is this card a person, a strategy, or an atmosphere?`, `What is mature here? What is distorted?`, `What does the element want to do?`]
+    };
+  }
+  return {
+    memory: [["Card", d.name || title], ["Title", d.gd_title || "—"], ["Type", lesson.type || "—"], ["Anchor", d.attribution || d.element || d.planet || d.zodiac || "—"]],
+    formula: `Decode in layers: structure first, image second, personal intuition last.`,
+    read: `Name the objective attributions before interpretation. Then ask how the picture expresses those forces.`,
+    compare: [`Find this card in Tree, Wheel, or Cheat Sheet.`, `Say the attribution aloud before reading.`],
+    prompts: [`What is the force?`, `Where is it located in the system?`, `What does it ask me to practice today?`]
+  };
+}
+
+function renderMemoryStack(items) {
+  return `<div class="tr-memory-stack">${items.map(([k,v]) => `<div class="tr-memory-chip"><div class="tr-memory-label">${esc(k)}</div><div class="tr-memory-value">${esc(v)}</div></div>`).join("")}</div>`;
+}
+
+function renderTodayCoach(t) {
+  const host = el("todayCoach");
+  if (!host || !t?.today_lesson) return;
+  const bp = lessonBlueprint(t.today_lesson);
+  host.innerHTML = `
+    <div class="tr-training-card accent">
+      <div class="tr-panel-eyebrow">Today's memory targets</div>
+      <div class="tr-training-title">Do not just read it — encode it.</div>
+      <div class="tr-training-prose">By the end of this session you should understand the words, then recall these anchors without looking.</div>
+      ${renderMemoryStack(bp.memory)}
+      ${beginnerPrimerForLesson(t.today_lesson)}
+    </div>
+    <div class="tr-training-card">
+      <div class="tr-panel-eyebrow">Training method</div>
+      <div class="tr-method-steps">
+        <div class="tr-method-step">Read the lesson once for orientation. Then close the modal and recite the memory stack.</div>
+        <div class="tr-method-step">Open the card/deck comparison. Say the decode formula before any intuitive meaning.</div>
+        <div class="tr-method-step">Answer the quiz, then write one concrete life example in the reflection prompt.</div>
+      </div>
+    </div>`;
+}
+
+function renderLessonTraining(lesson) {
+  const bp = lessonBlueprint(lesson);
+  return `
+    <div class="tr-lesson-step">
+      <div class="tr-step-label">▸ Decode Lab</div>
+      <div class="tr-lesson-grid">
+        <div class="tr-lesson-card full">
+          <h3>Memory Stack</h3>
+          ${renderMemoryStack(bp.memory)}
+        </div>
+        <div class="tr-lesson-card full">
+          <h3>Decode Formula</h3>
+          <div class="tr-formula">${esc(bp.formula)}</div>
+        </div>
+        ${plainDecodeWalkthrough(lesson)}
+        ${plainExamplesForLesson(lesson)}
+        <div class="tr-lesson-card">
+          <h3>Reading Lens</h3>
+          <p>${esc(bp.read)}</p>
+        </div>
+        <div class="tr-lesson-card">
+          <h3>Compare / Pull</h3>
+          <ul>${bp.compare.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+        </div>
+        <div class="tr-lesson-card full">
+          <h3>Socratic Prompts</h3>
+          <ul>${bp.prompts.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderDataBlock(lesson) {
+  const d = lesson.data || {};
+  if (lesson.type === "sephirah") {
+    return `<div class="tr-data-block"><strong style="font-family: var(--tr-serif); font-size: 22px; color: var(--tr-aged-gold);">${d.number}. ${d.name}</strong> <span class="heb">${d.hebrew}</span><br>
+      <span style="color: var(--fg-dim); font-style: italic;">"${d.meaning}"</span> · ${d.attribution}</div>`;
+  }
+  if (lesson.type === "letter") {
+    return `<div class="tr-data-block"><span class="heb">${d.hebrew}</span><strong style="font-family: var(--tr-serif); font-size: 22px; color: var(--tr-aged-gold);">${d.letter}</strong>
+      <div style="margin-top: 6px;">Path ${d.path_number} · ${d.attribution} · ${d.category} letter · Major: ${d.major_card}</div></div>`;
+  }
+  if (lesson.type === "decan-group") {
+    return `<div class="tr-data-block">${(d.decans || []).map((dec, i) => {
+      const card = (d.cards || [])[i];
+      return `<div style="padding: 6px 0;"><strong>${dec.ruling_planet} in ${dec.sign}</strong> (decan ${dec.decan_in_sign}, ${dec.degree_start}°-${dec.degree_end}°) → <em>${card?.name || ""}</em> — ${card?.gd_title || ""}</div>`;
+    }).join("")}</div>`;
+  }
+  if (lesson.type === "court") {
+    return `<div class="tr-data-block"><strong style="font-family: var(--tr-serif); font-size: 20px; color: var(--tr-aged-gold);">${d.name}</strong>
+      <div style="margin-top: 4px;"><em>${d.gd_title}</em></div>
+      <div style="margin-top: 6px;">${d.element} · ${d.world}</div>
+      <div style="margin-top: 4px; font-size: 13px; color: var(--fg-dim);">${d.zodiac}</div></div>`;
+  }
+  if (lesson.type === "card") {
+    let lines = [`<strong style="font-family: var(--tr-serif); font-size: 20px; color: var(--tr-aged-gold);">${d.name}</strong>`];
+    if (d.gd_title) lines.push(`<em>${d.gd_title}</em>`);
+    if (d.hebrew_letter) lines.push(`Hebrew: ${d.hebrew_letter}, path ${d.path_number}`);
+    if (d.sephirah) lines.push(`Sephirah: ${d.sephirah}`);
+    if (d.world) lines.push(`World: ${d.world}`);
+    if (d.element) lines.push(`Element: ${d.element}`);
+    if (d.zodiac) lines.push(`Zodiac: ${d.zodiac}`);
+    if (d.planet) lines.push(`Planet: ${d.planet}`);
+    if (d.dr) lines.push(`Decan: ${d.dr} in ${d.ds} (${d.dgs}°-${d.dge}°)`);
+    return `<div class="tr-data-block">${lines.join("<br>")}</div>`;
+  }
+  return "";
+}
+
+function renderLessonModal(lesson, done) {
+  const inner = el("lessonModalInner");
+  const stageColor = ["", "#d4a541", "#d4a541", "#d4a541", "#d4a541", "#d4a541"][lesson.stage];
+  inner.innerHTML = `
+    <div class="tr-modal-eyebrow">Stage ${lesson.stage} · ${lesson.stage_name} · Lesson ${lesson.global_number} of 148</div>
+    <h2 class="tr-modal-title">${lesson.title}</h2>
+    ${done ? '<div class="tr-modal-sub" style="color: var(--green);">✓ Already completed — review mode.</div>' : ''}
+
+    ${beginnerPrimerForLesson(lesson)}
+
+    <div class="tr-lesson-step">
+      <div class="tr-step-label">▸ Read</div>
+      <div class="tr-step-prose"><p>${lesson.intro.replace(/\n/g, "</p><p>")}</p></div>
+      ${renderDataBlock(lesson)}
+    </div>
+
+    ${renderLessonTraining(lesson)}
+
+    ${lesson.quiz?.length ? `
+    <div class="tr-lesson-step" id="quizStep">
+      <div class="tr-step-label">▸ Test Your Recall</div>
+      <div id="quizQs">${lesson.quiz.map((q, i) => `
+        <div style="padding: 12px 0; border-bottom: 1px solid var(--tr-line-soft);" data-qi="${i}">
+          <div class="tr-quiz-q-inline">${i+1}. ${q.question}</div>
+          ${q.choices ? `
+            <div style="display: grid; gap: 8px;">
+              ${q.choices.map(ch => `<button class="tr-choice" data-q="${i}" data-a="${ch.replace(/"/g,'&quot;')}">${ch}</button>`).join("")}
+            </div>
+          ` : `
+            <input class="tr-quiz-input" data-q="${i}" placeholder="Type your answer (then press Enter)..." />
+          `}
+          <div class="tr-quiz-explain-inline" data-r="${i}" style="display: none;"></div>
+        </div>`).join("")}
+      </div>
+    </div>
+    ` : ""}
+
+    <div class="tr-lesson-step">
+      <div class="tr-step-label">▸ Reflection</div>
+      <div class="tr-step-prose" style="font-style: italic;"><p>${lesson.reflection}</p></div>
+    </div>
+
+    <div class="tr-modal-actions">
+      <button class="tr-btn" id="btnCompleteLesson">Mark Lesson Complete</button>
+      <button class="tr-modal-close" id="btnCloseLesson">Close</button>
+    </div>
+  `;
+
+  // wire up quiz interactions
+  inner.querySelectorAll("[data-q].tr-choice").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const qi = parseInt(btn.dataset.q);
+      const ans = btn.dataset.a;
+      const q = lesson.quiz[qi];
+      const correct = ans.toLowerCase().trim() === String(q.correct).toLowerCase().trim();
+      lessonState.quizAnswers[qi] = { ans, correct };
+      // disable all choices for this question
+      inner.querySelectorAll(`[data-q="${qi}"].tr-choice`).forEach(b => {
+        b.disabled = true;
+        if (b.dataset.a === String(q.correct)) b.classList.add("correct");
+        else if (b.dataset.a === ans) b.classList.add("wrong");
+      });
+      const r = inner.querySelector(`[data-r="${qi}"]`);
+      r.style.display = "block";
+      r.innerHTML = `<strong class="${correct ? "tr-quiz-result-correct" : "tr-quiz-result-wrong"}">${correct ? "Correct." : "Not quite."}</strong> ${q.explanation}`;
+      api("/static/tarot/journey/quiz/answer", { method: "POST", body: JSON.stringify({
+        lesson_global: lesson.global_number, question_index: qi, given_answer: ans, correct,
+      })});
+    });
+  });
+  inner.querySelectorAll("input.tr-quiz-input").forEach(inp => {
+    inp.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const qi = parseInt(inp.dataset.q);
+      const ans = inp.value.trim();
+      if (!ans) return;
+      const q = lesson.quiz[qi];
+      const correctVal = String(q.correct).toLowerCase().trim();
+      const correct = ans.toLowerCase().includes(correctVal) || correctVal.includes(ans.toLowerCase());
+      lessonState.quizAnswers[qi] = { ans, correct };
+      inp.disabled = true;
+      const r = inner.querySelector(`[data-r="${qi}"]`);
+      r.style.display = "block";
+      r.innerHTML = `<strong class="${correct ? "tr-quiz-result-correct" : "tr-quiz-result-wrong"}">${correct ? "Correct." : `Not quite. Expected: ${q.correct}.`}</strong> ${q.explanation}`;
+      api("/static/tarot/journey/quiz/answer", { method: "POST", body: JSON.stringify({
+        lesson_global: lesson.global_number, question_index: qi, given_answer: ans, correct,
+      })});
+    });
+  });
+
+  el("btnCompleteLesson").addEventListener("click", async () => {
+    el("btnCompleteLesson").disabled = true;
+    el("btnCompleteLesson").textContent = "Saving…";
+    try {
+      const r = await api(`/static/tarot/journey/lesson/${lesson.global_number}/complete`, { method: "POST", body: JSON.stringify({}) });
+      closeLesson();
+      await loadToday();
+      if (r.next_lesson) {
+        el("btnCompleteLesson").textContent = "Mark Lesson Complete";
+        el("btnCompleteLesson").disabled = false;
+      }
+    } catch (e) {
+      el("btnCompleteLesson").textContent = "Mark Lesson Complete";
+      el("btnCompleteLesson").disabled = false;
+    }
+  });
+  el("btnCloseLesson").addEventListener("click", closeLesson);
+}
+
+el("lessonModal").addEventListener("click", (e) => {
+  if (e.target === el("lessonModal")) closeLesson();
+});
+
+// Curriculum browser
+async function loadCurriculum() {
+  const c = await api("/static/tarot/journey/curriculum");
+  const body = el("curriculumBody");
+  body.innerHTML = c.stages.map(stage => {
+    const stageLessons = c.lessons.filter(l => l.stage === stage.number);
+    const done = stageLessons.filter(l => l.done).length;
+    return `
+      <div class="tr-curriculum-stage">
+        <div class="tr-curriculum-stage-h">Stage ${stage.number}: ${stage.name}  <span style="color: var(--fg-muted); font-size: 14px; font-weight: 400;">${done}/${stage.lesson_count}</span></div>
+        <div class="tr-curriculum-stage-desc">${stage.description}</div>
+        <div class="tr-curriculum-list">
+          ${stageLessons.map(l => `
+            <div class="tr-curr-item ${l.done?"done":""} ${l.current?"current":""}" data-gid="${l.global_number}">
+              <div class="tr-curr-mark"></div>
+              <div class="tr-curr-num">${l.global_number}</div>
+              <div class="tr-curr-title">${l.title}</div>
+            </div>`).join("")}
+        </div>
+      </div>`;
+  }).join("");
+  body.querySelectorAll(".tr-curr-item").forEach(elem => {
+    elem.addEventListener("click", () => openLesson(parseInt(elem.dataset.gid)));
+  });
+}
+
+// Progress dashboard
+async function loadProgress() {
+  const p = await api("/static/tarot/journey/progress");
+  const body = el("progressBody");
+  const sp = p.stage_progress || {};
+  body.innerHTML = `
+    <div class="tr-prog-grid">
+      <div class="tr-prog-card">
+        <div class="tr-stage-num">OVERALL JOURNEY</div>
+        <div class="tr-prog-big-num">${p.overall_percent}%</div>
+        <div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--fg-muted); margin-top: 6px;">${p.completed_global.length} of ${p.total_lessons} lessons complete</div>
+        <div class="tr-prog-mini-grid">
+          <div class="tr-prog-mini"><div class="tr-prog-mini-label">Streak</div><div class="tr-prog-mini-val">${p.streak_days}</div></div>
+          <div class="tr-prog-mini"><div class="tr-prog-mini-label">Sessions</div><div class="tr-prog-mini-val">${p.session_count || 0}</div></div>
+          <div class="tr-prog-mini"><div class="tr-prog-mini-label">Cards Drawn</div><div class="tr-prog-mini-val">${p.total_draws || 0}</div></div>
+          <div class="tr-prog-mini"><div class="tr-prog-mini-label">Cards Seen</div><div class="tr-prog-mini-val">${p.cards_seen || 0}/78</div></div>
+        </div>
+      </div>
+      <div class="tr-prog-card">
+        <div class="tr-stage-num">QUIZ ACCURACY</div>
+        <div class="tr-prog-big-num">${(() => {
+          const totals = Object.values(p.quiz_accuracy || {}).filter(v => v !== null);
+          return totals.length ? Math.round(totals.reduce((a,b)=>a+b,0)/totals.length)+"%" : "—";
+        })()}</div>
+        <div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--fg-muted); margin-top: 6px;">${p.total_quiz_attempts} attempts logged</div>
+        <table style="width: 100%; margin-top: 14px;">
+          ${(p.stages || []).map(s => `<tr>
+            <td style="font-family: var(--tr-serif); padding: 4px 0;">${s.name}</td>
+            <td style="font-family: 'Geist Mono', monospace; color: var(--tr-aged-gold); text-align: right;">${p.quiz_accuracy[s.number] != null ? p.quiz_accuracy[s.number]+"%" : "—"}</td>
+          </tr>`).join("")}
+        </table>
+      </div>
+    </div>
+    <div class="tr-prog-card" style="margin-bottom: 14px;">
+      <div class="tr-stage-num">STAGES</div>
+      ${(p.stages || []).map(s => `
+        <div style="margin: 14px 0;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-family: var(--tr-serif); font-size: 16px; color: var(--tr-parchment);">Stage ${s.number}: ${s.name}</span>
+            <span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--tr-aged-gold);">${sp[s.number] || 0}% · ${Math.round(((sp[s.number]||0)/100)*s.lesson_count)}/${s.lesson_count}</span>
+          </div>
+          <div class="tr-stage-bar"><div class="tr-stage-fill" style="width: ${sp[s.number] || 0}%;"></div></div>
+          <div style="font-family: var(--tr-serif); font-style: italic; color: var(--fg-dim); font-size: 13px; margin-top: 4px;">${s.description}</div>
+        </div>
+      `).join("")}
+    </div>
+    <p style="color: var(--fg-muted); font-family: var(--tr-serif); font-style: italic; font-size: 13px; text-align: center; padding: 14px 0;">Started: ${p.started_at ? new Date(p.started_at).toLocaleDateString() : "—"} · Last session: ${p.last_session_at ? new Date(p.last_session_at).toLocaleString() : "—"}</p>
+  `;
+}
+
+// Hook tab clicks for new tabs
+const _origTabHandler = $$(".tr-tab")[0].onclick;
+$$(".tr-tab").forEach(t => t.addEventListener("click", () => {
+  const target = t.dataset.tab;
+  if (target === "today") loadToday();
+  if (target === "curriculum") loadCurriculum();
+  if (target === "progress") loadProgress();
+  if (target === "datalab") initDataLab();
+}));
+
+loadAll();
+loadToday();
+</script>
+</body>
+</html>
