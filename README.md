@@ -13,6 +13,7 @@ This is a public-safe release of a CK42X private study prototype. It runs entire
 - Random and systematic draw modes
 - Local-only journal and study notes
 - Local-only progress, quiz, and draw tracking
+- Export, import, and reset controls for browser-local user data
 
 ## Run locally
 
@@ -28,11 +29,11 @@ Opening `index.html` directly from disk may work in some browsers, but a local s
 
 ## Data and privacy
 
-The trainer ships with static correspondence and curriculum data in `data/tarot-data.json`. User progress, draws, quiz attempts, journal entries, and study-lab notes stay in `localStorage` under the `ck42x.hermeticTarot.v1` key. Nothing is sent to CK42X or any server.
+The trainer ships with static correspondence and curriculum data in `data/tarot-data.json`. User progress, draws, quiz attempts, journal entries, and study-lab notes stay in browser `localStorage`. Main progress is stored under `ck42x.hermeticTarot.v1`; per-card Study Lab notes are stored under `tarot.cardnotes.<card_id>`. Nothing is sent to CK42X or any server.
 
 No external services are required at runtime. The app is designed for static hosts such as GitHub Pages.
 
-To reset local progress, clear site data for the app in your browser.
+Use the Progress tab's Local Data controls to export a JSON backup, import a backup into another browser, or reset all local progress and notes.
 
 ## Licensing and attribution notes
 

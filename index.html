@@ -354,8 +354,12 @@
 /* Progress dashboard */
 .tr-prog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
 .tr-prog-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; }
-.tr-prog-big-num { font-family: var(--tr-serif); font-size: 56px; font-weight: 600; color: var(--tr-aged-gold); line-height: 1; }
-.tr-prog-mini-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 14px; }
+.tr-local-data-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.tr-local-data-status { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--fg-muted); margin-top: 10px; min-height: 16px; }
+.tr-local-data-note { color: var(--fg-dim); font-family: var(--tr-serif); font-size: 14px; line-height: 1.45; margin-top: 8px; }
+.tr-danger { border-color: rgba(190, 68, 68, 0.6) !important; color: #e38c8c !important; }
+.tr-prog-big-num { font-family: var(--tr-serif); font-size: 58px; color: var(--tr-aged-gold); line-height: 1; }
+.tr-prog-mini-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 16px; }
 .tr-prog-mini { padding: 10px 12px; background: var(--bg); border-radius: 6px; }
 .tr-prog-mini-label { font-family: 'Geist Mono', monospace; font-size: 9px; color: var(--fg-muted); letter-spacing: 0.16em; text-transform: uppercase; }
 .tr-prog-mini-val { font-family: var(--tr-serif); font-size: 22px; color: var(--tr-aged-gold); margin-top: 2px; }
@@ -528,6 +532,7 @@
     <div id="progressBody">
       <div class="tr-panel"><div class="tr-attr-empty">Loading progress…</div></div>
     </div>
+    <input id="importDataInput" type="file" accept="application/json,.json" style="display:none" />
   </section>
 
   <!-- LESSON MODAL -->
@@ -899,6 +904,82 @@ function loadLabNotes(cardId) {
   try { return JSON.parse(localStorage.getItem(labNotesKey(cardId)) || "{}"); } catch { return {}; }
 }
 function saveLabNotes(cardId, notes) { localStorage.setItem(labNotesKey(cardId), JSON.stringify(notes)); }
+function labNoteKeys() { return Object.keys(localStorage).filter(k => k.startsWith("tarot.cardnotes.")); }
+function collectLocalData() {
+  return {
+    schema: "ck42x.hermeticTarot.localData",
+    version: 1,
+    exported_at: new Date().toISOString(),
+    origin: window.location.origin,
+    progress: progressStore(),
+    lab_notes: Object.fromEntries(labNoteKeys().map(k => [k.replace("tarot.cardnotes.", ""), JSON.parse(localStorage.getItem(k) || "{}")]))
+  };
+}
+function restoreLocalData(payload) {
+  const progress = payload?.progress || payload?.[STORE_KEY];
+  if (!progress || typeof progress !== "object" || Array.isArray(progress)) throw new Error("Backup file is missing progress data.");
+  const labNotes = payload.lab_notes || payload.labNotes || {};
+  localStorage.setItem(STORE_KEY, JSON.stringify({ ...defaultProgress(), ...progress }));
+  labNoteKeys().forEach(k => localStorage.removeItem(k));
+  Object.entries(labNotes).forEach(([cardId, notes]) => {
+    if (notes && typeof notes === "object" && !Array.isArray(notes)) saveLabNotes(cardId, notes);
+  });
+  STATIC_PROGRESS = null;
+}
+function resetLocalData() {
+  localStorage.removeItem(STORE_KEY);
+  labNoteKeys().forEach(k => localStorage.removeItem(k));
+  STATIC_PROGRESS = null;
+}
+function setLocalDataStatus(message) {
+  const status = el("localDataStatus");
+  if (status) status.textContent = message;
+}
+async function refreshAfterLocalDataChange() {
+  await Promise.all([loadToday(), loadCurriculum(), loadProgress()]);
+  loadDiary();
+  if (el("labCardSelect")?.value) initDataLab();
+}
+function exportLocalData() {
+  const blob = new Blob([JSON.stringify(collectLocalData(), null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ck42x-hermetic-tarot-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  setLocalDataStatus("Exported local backup JSON.");
+}
+async function importLocalData(file) {
+  if (!file) return;
+  try {
+    restoreLocalData(JSON.parse(await file.text()));
+    await refreshAfterLocalDataChange();
+    setLocalDataStatus(`Imported ${file.name}. This browser now uses the restored local data.`);
+  } catch (e) {
+    setLocalDataStatus(`Import failed: ${e.message}`);
+  }
+}
+async function resetLocalDataWithConfirm() {
+  if (!confirm("Reset all Hermetic Tarot progress, diary entries, quiz history, and Study Lab notes in this browser?")) return;
+  resetLocalData();
+  await refreshAfterLocalDataChange();
+  setLocalDataStatus("Local data reset for this browser.");
+}
+function wireLocalDataControls() {
+  const importInput = el("importDataInput");
+  el("btnExportData")?.addEventListener("click", exportLocalData);
+  el("btnImportData")?.addEventListener("click", () => importInput?.click());
+  el("btnResetData")?.addEventListener("click", resetLocalDataWithConfirm);
+  if (importInput) {
+    importInput.onchange = () => {
+      importLocalData(importInput.files?.[0]);
+      importInput.value = "";
+    };
+  }
+}
 
 function renderSourceGrid() {
   const grid = el("sourceGrid");
@@ -1918,8 +1999,20 @@ async function loadProgress() {
         </div>
       `).join("")}
     </div>
+    <div class="tr-prog-card" style="margin-bottom: 14px;">
+      <div class="tr-stage-num">LOCAL DATA</div>
+      <div class="tr-panel-title">Backup, restore, or reset this browser</div>
+      <p class="tr-local-data-note">Your diary, draws, quiz history, lesson progress, and Study Lab notes stay in this browser only. Export a JSON backup before changing devices or clearing site data.</p>
+      <div class="tr-local-data-actions">
+        <button class="tr-btn" id="btnExportData">Export JSON</button>
+        <button class="tr-btn ghost" id="btnImportData">Import JSON</button>
+        <button class="tr-btn ghost tr-danger" id="btnResetData">Reset Local Data</button>
+      </div>
+      <div class="tr-local-data-status" id="localDataStatus"></div>
+    </div>
     <p style="color: var(--fg-muted); font-family: var(--tr-serif); font-style: italic; font-size: 13px; text-align: center; padding: 14px 0;">Started: ${p.started_at ? new Date(p.started_at).toLocaleDateString() : "—"} · Last session: ${p.last_session_at ? new Date(p.last_session_at).toLocaleString() : "—"}</p>
   `;
+  wireLocalDataControls();
 }
 
 // Hook tab clicks for new tabs
